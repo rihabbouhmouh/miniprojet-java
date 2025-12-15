@@ -1,0 +1,31 @@
+.home-register-btn {
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 14px;
+    background: white;
+    border: 2px solid #667eea;
+    color: #667eea;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;   /* animation smooth */
+}
+
+/* Hover effect */
+.home-register-btn:hover {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    transform: translateY(-3px);   /* petit levé stylé */
+}
+
+.home-login-btn {
+    transition: all 0.25s ease;
+}
+
+/* Hover effect */
+.home-login-btn:hover {
+    background: linear-gradient(135deg, #5a6de0 0%, #6b54a8 100%);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transform: translateY(-3px);
+}

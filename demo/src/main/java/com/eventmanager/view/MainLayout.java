@@ -8,6 +8,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -20,7 +21,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import java.util.Optional;
-
+@CssImport("./styles/styles.css")
 public class MainLayout extends AppLayout {
 
     private final AuthenticatedUser authenticatedUser;
@@ -79,7 +80,10 @@ public class MainLayout extends AppLayout {
     }
 
     private void createDrawer() {
-        H1 appName = new H1("🎭 Event Manager");
+        H1 appName = new H1("🎭 EventHub");
+        appName.getStyle().set("font-size", "2.2rem")
+                .set("margin", "20px")
+                .set("font-weight", "normal");
         appName.addClassNames(
                 LumoUtility.FontSize.LARGE,
                 LumoUtility.Margin.NONE
@@ -103,7 +107,7 @@ public class MainLayout extends AppLayout {
 
         if (maybeUser.isEmpty()) {
             // Utilisation de chemins de route comme chaînes de caractères
-            nav.addItem(new SideNavItem("Accueil", "", VaadinIcon.HOME.create()));
+            nav.addItem(new SideNavItem("Accueil", "home", VaadinIcon.HOME.create()));
             nav.addItem(new SideNavItem("Événements", "events", VaadinIcon.CALENDAR.create()));
             nav.addItem(new SideNavItem("Connexion", "login", VaadinIcon.SIGN_IN.create()));
             nav.addItem(new SideNavItem("Inscription", "register", VaadinIcon.USER_CHECK.create()));
@@ -111,7 +115,7 @@ public class MainLayout extends AppLayout {
             User user = maybeUser.get();
             UserRole userRole = user.getRole();
 
-            nav.addItem(new SideNavItem("Accueil", "", VaadinIcon.HOME.create()));
+            nav.addItem(new SideNavItem("Accueil", "home", VaadinIcon.HOME.create()));
             nav.addItem(new SideNavItem("Événements", "events", VaadinIcon.CALENDAR.create()));
 
             if (userRole == UserRole.CLIENT || userRole == UserRole.ORGANIZER || userRole == UserRole.ADMIN) {
