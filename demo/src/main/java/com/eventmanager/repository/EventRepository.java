@@ -18,11 +18,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // Trouver les événements par catégorie
     List<Event> findByCategorie(EventCategory categorie);
 
+
     // Trouver les événements publiés entre deux dates de création
     List<Event> findByDateCreationBetween(LocalDateTime start, LocalDateTime end);
 
     // Trouver les événements d'un organisateur avec un statut donné
-    List<Event> findByOrganisateurIdAndStatut(Long organisateurId, EventStatus statut);
+    @Query("SELECT e FROM Event e WHERE e.organisateur.id = :organisateurId ORDER BY e.dateCreation DESC")
+    List<Event> findByOrganisateurId(@Param("organisateurId") Long organisateurId);
+
 
     // ✅ Correction : chargement des réservations avec JOIN FETCH pour éviter LazyInitializationException
     @Query("SELECT DISTINCT e FROM Event e LEFT JOIN FETCH e.reservations r WHERE e.statut = 'PUBLIE' AND e.dateFin > CURRENT_TIMESTAMP")

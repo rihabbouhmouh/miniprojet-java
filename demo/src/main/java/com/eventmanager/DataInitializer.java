@@ -83,7 +83,7 @@ public class DataInitializer implements CommandLineRunner {
                 "admin123", "0612345678", UserRole.ADMIN);
         createUserIfNotExists("Client", "Test", "client@event.ma", 
                 "client123", "0623456789", UserRole.CLIENT);
-        User organisateur = createUserIfNotExists("Organisateur", "Event", "organisateur@event.ma", 
+        User organisateur = createUserIfNotExists("Organisateur", "Event", "organizer1@event.ma", 
                 "org123", "0634567890", UserRole.ORGANIZER);
 
         System.out.println("✓ Utilisateurs vérifiés/mis à jour : Admin, Client, Organisateur");

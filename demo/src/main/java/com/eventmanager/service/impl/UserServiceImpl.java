@@ -140,7 +140,7 @@ public class UserServiceImpl implements IUserService {
         Map<String, Object> stats = new HashMap<>();
 
         // Utilisez findByOrganisateurIdAndStatut
-        long eventsCreated = eventRepository.findByOrganisateurIdAndStatut(userId, null).size();
+        long eventsCreated = eventRepository.findByOrganisateurId(userId).size();
         stats.put("eventsCreated", eventsCreated);
 
         // Récupérer toutes les réservations et filtrer

@@ -15,8 +15,8 @@
 -- CORRECTION : Remplacez 'role' par 'user_role'
 INSERT INTO users (nom, prenom, email, password, user_role, date_inscription, actif, telephone) VALUES
 ('Admin', 'Systeme', 'admin@event.ma', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'ADMIN', NOW(), TRUE, '0611223344'),
-('El Amrani', 'Karim', 'organizer1@event.ma', '$2a$10$VEjxo0jq2YT5J1WbEIKbke5NkX7PHe7rljKzWLgX5LNjVTjhWtUgi', 'ORGANIZER', NOW(), TRUE, '0622334455'),
-('Bennani', 'Leila', 'organizer2@event.ma', '$2a$10$VEjxo0jq2YT5J1WbEIKbke5NkX7PHe7rljKzWLgX5LNjVTjhWtUgi', 'ORGANIZER', NOW(), TRUE, '0633445566'),
+('El Amrani', 'Karim', 'organizer1@event.ma', '$2a$10$SKcF8qWWdIVr7Ac4el2rUOKbiXHiSAipNCQOBVsZkBNCLaQfLkIKy', 'ORGANIZER', NOW(), TRUE, '0622334455'),
+('Bennani', 'Leila', 'organizer2@event.ma', '$2a$10$SKcF8qWWdIVr7Ac4el2rUOKbiXHiSAipNCQOBVsZkBNCLaQfLkIKy', 'ORGANIZER', NOW(), TRUE, '0633445566'),
 ('Nassiri', 'Omar', 'client1@event.ma', '$2a$10$2aMCqHWZhEh1H6J6e9WEduYXxaLFJg3JMQjXm/GFLHjBvEDHZXHNy', 'CLIENT', NOW(), TRUE, '0644556677'),
 ('Haddad', 'Sara', 'client2@event.ma', '$2a$10$2aMCqHWZhEh1H6J6e9WEduYXxaLFJg3JMQjXm/GFLHjBvEDHZXHNy', 'CLIENT', NOW(), TRUE, '0655667788');
 

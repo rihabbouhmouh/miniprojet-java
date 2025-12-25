@@ -117,7 +117,7 @@ public class EventServiceImpl implements IEventService {
 
     @Override
     public List<Event> getEventsByOrganizer(Long organizerId) {
-        return eventRepository.findByOrganisateurIdAndStatut(organizerId, null);
+        return eventRepository.findByOrganisateurId(organizerId);
     }
 
     @Override
