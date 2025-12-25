@@ -1,7 +1,10 @@
 package com.eventmanager.view.publicpages;
 
 import com.eventmanager.entity.Event;
+import com.eventmanager.entity.User;
+import com.eventmanager.enums.EventCategory;
 import com.eventmanager.enums.EventStatus;
+import com.eventmanager.enums.UserRole;
 import com.eventmanager.service.IEventService;
 import com.eventmanager.view.MainLayout;
 import com.eventmanager.repository.EventRepository;
@@ -9,7 +12,12 @@ import com.eventmanager.security.AuthenticatedUser;
 import com.eventmanager.security.NavigationManager;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.datetimepicker.DateTimePicker;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -17,6 +25,11 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
@@ -24,6 +37,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Route(value = "event", layout = MainLayout.class)
@@ -37,6 +51,27 @@ public class EventDetailView extends VerticalLayout implements HasUrlParameter<L
     private final AuthenticatedUser authenticatedUser;
 
     private Event event;
+    private boolean isAdmin = false;
+    private boolean isEditing = false;
+    
+    // Edit form fields
+    private TextField titreField;
+    private TextArea descriptionField;
+    private ComboBox<EventCategory> categorieComboBox;
+    private DateTimePicker dateDebutPicker;
+    private DateTimePicker dateFinPicker;
+    private TextField lieuField;
+    private TextField villeField;
+    private IntegerField capaciteMaxField;
+    private NumberField prixUnitaireField;
+    private TextField imageUrlField;
+    private ComboBox<EventStatus> statutComboBox;
+    
+    private Button editButton;
+    private Button saveButton;
+    private Button cancelButton;
+    
+    private Binder<Event> binder;
 
     public EventDetailView(EventRepository eventRepository,
                            IEventService eventService,
@@ -63,6 +98,11 @@ public class EventDetailView extends VerticalLayout implements HasUrlParameter<L
             return;
         }
 
+                // Check if user is admin
+        this.isAdmin = authenticatedUser.get()
+                .map(user -> user.getRole() == UserRole.ADMIN)
+                .orElse(false);
+
         createEventDetail();
     }
 
@@ -72,8 +112,22 @@ public class EventDetailView extends VerticalLayout implements HasUrlParameter<L
         // Bouton retour
         Button backButton = new Button("Retour aux événements", VaadinIcon.ARROW_LEFT.create());
         backButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        backButton.addClickListener(e -> navigationManager.navigateToEvents());
-
+        backButton.addClickListener(e -> {
+            if (isAdmin) {
+                navigationManager.navigateTo("admin/events");
+            } else {
+                navigationManager.navigateToEvents();
+            }
+        });
+        
+        // Edit button for admin
+        HorizontalLayout headerButtons = new HorizontalLayout(backButton);
+        if (isAdmin && !isEditing) {
+            editButton = new Button("Modifier l'événement", VaadinIcon.EDIT.create());
+            editButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            editButton.addClickListener(e -> enableEditing());
+            headerButtons.add(editButton);
+        }
         // Container principal
         VerticalLayout container = new VerticalLayout();
         container.setWidthFull();
@@ -202,9 +256,164 @@ public class EventDetailView extends VerticalLayout implements HasUrlParameter<L
 
         organizerSection.add(organizerTitle, organizerInfo);
 
+        if (isEditing) {
+            // Show edit form
+            add(headerButtons, createEditForm());
+        } else {
+            // Show read-only view
+
         container.add(badges, title, infoSection, priceSection, organizerSection);
-        add(backButton, container);
+            add(headerButtons, container);
+        }
     }
+        private VerticalLayout createEditForm() {
+        VerticalLayout formContainer = new VerticalLayout();
+        formContainer.setPadding(true);
+        formContainer.getStyle()
+                .set("background", "var(--lumo-base-color)")
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "var(--lumo-border-radius-l)")
+                .set("box-shadow", "var(--lumo-box-shadow-s)");
+
+        H2 formTitle = new H2("✏️ Modifier l'événement");
+        formTitle.getStyle().set("margin", "0 0 var(--lumo-space-l) 0");
+
+        // Create form fields
+        titreField = new TextField("Titre");
+        titreField.setWidthFull();
+        titreField.setRequired(true);
+
+        descriptionField = new TextArea("Description");
+        descriptionField.setWidthFull();
+        descriptionField.setMaxHeight("150px");
+
+        categorieComboBox = new ComboBox<>("Catégorie");
+        categorieComboBox.setItems(EventCategory.values());
+        categorieComboBox.setItemLabelGenerator(EventCategory::getLabel);
+        categorieComboBox.setWidthFull();
+        categorieComboBox.setRequired(true);
+
+        dateDebutPicker = new DateTimePicker("Date de début");
+        dateDebutPicker.setWidthFull();
+
+        dateFinPicker = new DateTimePicker("Date de fin");
+        dateFinPicker.setWidthFull();
+
+        lieuField = new TextField("Lieu");
+        lieuField.setWidthFull();
+        lieuField.setRequired(true);
+
+        villeField = new TextField("Ville");
+        villeField.setWidthFull();
+        villeField.setRequired(true);
+
+        capaciteMaxField = new IntegerField("Capacité maximale");
+        capaciteMaxField.setWidthFull();
+        capaciteMaxField.setMin(1);
+        capaciteMaxField.setRequired(true);
+
+        prixUnitaireField = new NumberField("Prix unitaire (DH)");
+        prixUnitaireField.setWidthFull();
+        prixUnitaireField.setMin(0);
+        prixUnitaireField.setRequired(true);
+
+        imageUrlField = new TextField("URL de l'image");
+        imageUrlField.setWidthFull();
+
+        statutComboBox = new ComboBox<>("Statut");
+        statutComboBox.setItems(EventStatus.values());
+        statutComboBox.setWidthFull();
+        statutComboBox.setRequired(true);
+
+        // Form layout
+        FormLayout formLayout = new FormLayout();
+        formLayout.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("600px", 2)
+        );
+
+        formLayout.add(titreField, 2);
+        formLayout.add(descriptionField, 2);
+        formLayout.add(categorieComboBox, 1);
+        formLayout.add(statutComboBox, 1);
+        formLayout.add(dateDebutPicker, 1);
+        formLayout.add(dateFinPicker, 1);
+        formLayout.add(lieuField, 1);
+        formLayout.add(villeField, 1);
+        formLayout.add(capaciteMaxField, 1);
+        formLayout.add(prixUnitaireField, 1);
+        formLayout.add(imageUrlField, 2);
+
+        // Action buttons
+        HorizontalLayout buttonLayout = new HorizontalLayout();
+        buttonLayout.setSpacing(true);
+
+        saveButton = new Button("Enregistrer", VaadinIcon.CHECK.create());
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveButton.addClickListener(e -> saveEvent());
+
+        cancelButton = new Button("Annuler", VaadinIcon.CLOSE.create());
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        cancelButton.addClickListener(e -> cancelEditing());
+
+        buttonLayout.add(saveButton, cancelButton);
+
+        formContainer.add(formTitle, formLayout, buttonLayout);
+
+        // Bind data
+        binder = new Binder<>(Event.class);
+        binder.bind(titreField, Event::getTitre, Event::setTitre);
+        binder.bind(descriptionField, Event::getDescription, Event::setDescription);
+        binder.bind(categorieComboBox, Event::getCategorie, Event::setCategorie);
+        binder.bind(dateDebutPicker, Event::getDateDebut, Event::setDateDebut);
+        binder.bind(dateFinPicker, Event::getDateFin, Event::setDateFin);
+        binder.bind(lieuField, Event::getLieu, Event::setLieu);
+        binder.bind(villeField, Event::getVille, Event::setVille);
+        binder.bind(capaciteMaxField, Event::getCapaciteMax, Event::setCapaciteMax);
+        binder.bind(prixUnitaireField, Event::getPrixUnitaire, Event::setPrixUnitaire);
+        binder.bind(imageUrlField, Event::getImageUrl, Event::setImageUrl);
+        binder.bind(statutComboBox, Event::getStatut, Event::setStatut);
+        
+        binder.readBean(event);
+
+        return formContainer;
+    }
+    
+    private void enableEditing() {
+        isEditing = true;
+        createEventDetail();
+    }
+    
+    private void saveEvent() {
+        try {
+            if (binder.writeBeanIfValid(event)) {
+                // Update event using service
+                eventService.updateEvent(event.getId(), event);
+                
+                // Update status if changed
+                if (statutComboBox.getValue() != null) {
+                    eventService.changeEventStatus(event.getId(), statutComboBox.getValue());
+                }
+                
+                showSuccess("Événement mis à jour avec succès");
+                isEditing = false;
+                // Reload event from database
+                this.event = eventRepository.findById(event.getId()).orElse(event);
+                createEventDetail();
+            } else {
+                showError("Veuillez corriger les erreurs dans le formulaire");
+            }
+        } catch (Exception e) {
+            showError("Erreur lors de la mise à jour: " + e.getMessage());
+        }
+    }
+    
+    private void cancelEditing() {
+        isEditing = false;
+        // Reload event from database to reset changes
+        this.event = eventRepository.findById(event.getId()).orElse(event);
+        createEventDetail();
+        }
 
     private HorizontalLayout createInfoRow(VaadinIcon icon, String label, String value) {
         HorizontalLayout row = new HorizontalLayout();
@@ -239,5 +448,11 @@ public class EventDetailView extends VerticalLayout implements HasUrlParameter<L
     private void showError(String message) {
         Notification notification = Notification.show(message, 3000, Notification.Position.TOP_CENTER);
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+    }
+
+        
+    private void showSuccess(String message) {
+        Notification notification = Notification.show(message, 3000, Notification.Position.TOP_CENTER);
+        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 }

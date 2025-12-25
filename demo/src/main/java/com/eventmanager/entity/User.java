@@ -97,4 +97,5 @@ public class User {
 
     public List<Reservation> getReservations() { return reservations; }
     public void setReservations(List<Reservation> reservations) { this.reservations = reservations; }
+    
 }

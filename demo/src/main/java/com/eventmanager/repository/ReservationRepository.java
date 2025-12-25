@@ -15,6 +15,13 @@ import java.util.Optional;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    @Query("""
+        SELECT r FROM Reservation r
+        JOIN FETCH r.utilisateur
+        JOIN FETCH r.evenement
+    """)
+    List<Reservation> findAllWithDetails();
+
     // Réservations d'un utilisateur
     List<Reservation> findByUtilisateurId(Long utilisateurId);
 

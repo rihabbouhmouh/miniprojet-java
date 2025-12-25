@@ -1,6 +1,7 @@
 package com.eventmanager.view.publicpages;
 
 import com.eventmanager.enums.UserRole;
+import com.eventmanager.security.AuthenticatedUser;
 import com.eventmanager.security.NavigationManager;
 import com.eventmanager.service.IUserService;
 import com.vaadin.flow.component.Text;
@@ -23,6 +24,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import io.netty.handler.codec.mqtt.MqttReasonCodes.Auth;
+
 /**
  * Register View - Fixed version with proper spacing and label colors
  */
@@ -33,6 +36,7 @@ public class RegisterView extends VerticalLayout {
 
     private final IUserService userService;
     private final NavigationManager navigationManager;
+    private final AuthenticatedUser authenticatedUser;
 
     private TextField nomField;
     private TextField prenomField;
@@ -49,9 +53,17 @@ public class RegisterView extends VerticalLayout {
     private Span passwordStrengthText;
 
     public RegisterView(IUserService userService,
+                        AuthenticatedUser authenticatedUser,
                         NavigationManager navigationManager) {
         this.userService = userService;
+        this.authenticatedUser = authenticatedUser;
         this.navigationManager = navigationManager;
+
+        // Redirect if already authenticated
+        if (authenticatedUser.isAuthenticated()) {
+            navigationManager.navigateToUserHome();
+            return;
+        }
 
         // Configure main layout styles
         setSizeFull();

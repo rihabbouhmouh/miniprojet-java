@@ -13,7 +13,7 @@ public interface IUserService {
 
     Optional<User> authenticate(String email, String password);
 
-    User updateProfile(Long userId, String nom, String prenom, String telephone);
+    User updateProfile(Long userId, String nom, String prenom, String email, String telephone);
 
     void changePassword(Long userId, String oldPassword, String newPassword);
 

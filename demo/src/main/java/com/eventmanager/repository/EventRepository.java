@@ -73,4 +73,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e, COALESCE(SUM(r.montantTotal), 0) as revenue FROM Event e LEFT JOIN e.reservations r " +
             "WHERE r.statut = 'CONFIRMEE' GROUP BY e ORDER BY revenue DESC")
     List<Object[]> getEventRevenue();
+
+        
+    // Tous les événements avec organisateur chargé (pour admin)
+    @Query("SELECT e FROM Event e LEFT JOIN FETCH e.organisateur ORDER BY e.dateCreation DESC")
+    List<Event> findAllWithOrganisateur();
 }

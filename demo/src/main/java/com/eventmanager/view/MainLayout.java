@@ -17,6 +17,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -67,7 +68,10 @@ public class MainLayout extends AppLayout {
 
             Button logoutButton = new Button("Déconnexion", VaadinIcon.SIGN_OUT.create());
             logoutButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            logoutButton.addClickListener(e -> authenticatedUser.logout());
+            logoutButton.addClickListener(e -> {
+                UI ui = UI.getCurrent();
+                ui.getPage().setLocation("/logout");
+            });
 
             HorizontalLayout userLayout = new HorizontalLayout(avatar, userName, logoutButton);
             userLayout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
@@ -118,13 +122,13 @@ public class MainLayout extends AppLayout {
             nav.addItem(new SideNavItem("Accueil", "home", VaadinIcon.HOME.create()));
             nav.addItem(new SideNavItem("Événements", "events", VaadinIcon.CALENDAR.create()));
 
-            if (userRole == UserRole.CLIENT || userRole == UserRole.ORGANIZER || userRole == UserRole.ADMIN) {
+            if (userRole == UserRole.CLIENT) {
                 nav.addItem(new SideNavItem("Mon Tableau de Bord", "dashboard", VaadinIcon.DASHBOARD.create()));
                 nav.addItem(new SideNavItem("Mes Réservations", "my-reservations", VaadinIcon.TICKET.create()));
                 nav.addItem(new SideNavItem("Mon Profil", "profile", VaadinIcon.USER.create()));
             }
 
-            if (userRole == UserRole.ORGANIZER || userRole == UserRole.ADMIN) {
+            if (userRole == UserRole.ORGANIZER) {
                 // CORRIGÉ : Utilisation du constructeur à 3 paramètres pour les menus parents
                 SideNavItem organizerMenu = new SideNavItem("Organisateur", "", VaadinIcon.BRIEFCASE.create());
                 organizerMenu.addItem(new SideNavItem("Tableau de Bord", "organizer/dashboard", VaadinIcon.CHART.create()));

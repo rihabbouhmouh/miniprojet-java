@@ -76,7 +76,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public User updateProfile(Long userId, String nom, String prenom, String telephone) {
+    public User updateProfile(Long userId, String nom, String prenom, String email, String telephone) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
 
@@ -86,6 +86,14 @@ public class UserServiceImpl implements IUserService {
 
         if (prenom != null && !prenom.trim().isEmpty()) {
             user.setPrenom(prenom.trim());
+        }
+        
+        if (email != null && !email.trim().isEmpty() && !email.equals(user.getEmail())) {
+            // Vérifier unicité de l'email
+            if (userRepository.existsByEmail(email)) {
+                throw new ConflictException("Cet email est déjà utilisé");
+            }
+            user.setEmail(email.trim());
         }
 
         if (telephone != null && !telephone.trim().isEmpty()) {

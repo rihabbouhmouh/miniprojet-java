@@ -19,27 +19,41 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.VaadinResponse;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.VaadinServletResponse;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+
 
 @Route("login")
 @PageTitle("Connexion - Event Manager")
 @AnonymousAllowed
 public class LoginView extends VerticalLayout {
 
-    private final IUserService userService;
     private final NavigationManager navigationManager;
     private final AuthenticatedUser authenticatedUser;
+    private final AuthenticationManager authenticationManager;
 
     private EmailField emailField;
     private PasswordField passwordField;
     private Button loginButton;
 
-    public LoginView(IUserService userService,
-                     NavigationManager navigationManager,
-                     AuthenticatedUser authenticatedUser) {
-        this.userService = userService;
+    public LoginView(NavigationManager navigationManager,
+                     AuthenticatedUser authenticatedUser,
+                     AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
         this.navigationManager = navigationManager;
         this.authenticatedUser = authenticatedUser;
 
+        // Redirect if already authenticated
         if (authenticatedUser.isAuthenticated()) {
             navigationManager.navigateToUserHome();
             return;
@@ -212,25 +226,61 @@ public class LoginView extends VerticalLayout {
             loginButton.setText("Connexion en cours...");
 
             try {
-                var userOptional = userService.authenticate(email, password);
-
-                if (userOptional.isPresent()) {
-                    showSuccess("Connexion réussie !");
-                    UI.getCurrent().getPage().executeJs(
-                            "setTimeout(function(){ window.location.reload(); }, 500);"
-                    );
-                } else {
-                    showError("Email ou mot de passe incorrect");
-                    loginButton.setEnabled(true);
-                    loginButton.setText("Se connecter");
+                // Authentifier directement avec Spring Security
+                // Spring Security utilisera CustomUserDetailsService pour charger l'utilisateur
+                // et vérifier le mot de passe avec BCrypt
+                UsernamePasswordAuthenticationToken authToken = 
+                        new UsernamePasswordAuthenticationToken(email, password);
+                Authentication authentication = authenticationManager.authenticate(authToken);
+                
+                // Sauvegarder dans SecurityContext et session
+                SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+                securityContext.setAuthentication(authentication);
+                SecurityContextHolder.setContext(securityContext);
+                
+                // Sauvegarder dans la session HTTP via VaadinService
+                try {
+                    VaadinRequest vaadinRequest = VaadinService.getCurrentRequest();
+                    VaadinResponse vaadinResponse = VaadinService.getCurrentResponse();
+                    
+                    if (vaadinRequest instanceof VaadinServletRequest && vaadinResponse instanceof VaadinServletResponse) {
+                        VaadinServletRequest servletRequest = (VaadinServletRequest) vaadinRequest;
+                        VaadinServletResponse servletResponse = (VaadinServletResponse) vaadinResponse;
+                        
+                        SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
+                        securityContextRepository.saveContext(securityContext, 
+                                servletRequest.getHttpServletRequest(), 
+                                servletResponse.getHttpServletResponse());
+                    }
+                } catch (Exception e) {
+                    // Fallback: SecurityContext is already set in SecurityContextHolder
+                    // It will be saved automatically by Spring Security filter chain
                 }
+                
+                showSuccess("Connexion réussie !");
+                
+                // Rediriger selon le rôle
+                UI.getCurrent().access(() -> {
+                    navigationManager.navigateToUserHome();
+                });
+            } catch (org.springframework.security.core.AuthenticationException e) {
+                // Log the exception for debugging
+                System.err.println("Authentication error: " + e.getMessage());
+                e.printStackTrace();
+                showError("Email ou mot de passe incorrect");
+                loginButton.setEnabled(true);
+                loginButton.setText("Se connecter");
             } catch (Exception e) {
+                // Log the exception for debugging
+                System.err.println("Login error: " + e.getMessage());
+                e.printStackTrace();
                 showError("Erreur lors de la connexion: " + e.getMessage());
                 loginButton.setEnabled(true);
                 loginButton.setText("Se connecter");
             }
         }
     }
+
 
     private void showError(String message) {
         Notification notification = Notification.show(message, 3000, Notification.Position.TOP_CENTER);
