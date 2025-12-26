@@ -45,35 +45,35 @@ public class ReservationServiceImpl implements IReservationService {
     }
 
     @Override
-    public Reservation createReservation(Long userId, Long eventId, int nombrePlaces) {
+    public Reservation createReservation(Long userId, Long eventId, int nombrePlaces ,String commentaire) {
         User user = userService.getUserById(userId);
         Event event = eventService.getEventById(eventId);
 
-        // Vérifier si l'événement est disponible
-        if (eventService.isEventFull(event.getId())) {
-            throw new BusinessException("L'événement est complet");
+        if (nombrePlaces < 1 || nombrePlaces > 10) {
+            throw new BusinessException("Nombre de places invalide (1 à 10).");
         }
 
-        // Vérifier les places disponibles
-        int availableSeats = eventService.getAvailableSeats(event);
-        if (nombrePlaces > availableSeats) {
-            throw new BusinessException("Nombre de places insuffisant. Places disponibles: " + availableSeats);
-        }
-
-        // Vérifier si l'événement est à venir
         if (event.getDateDebut().isBefore(LocalDateTime.now())) {
             throw new BusinessException("Impossible de réserver pour un événement passé");
         }
 
-        // Créer la réservation
+        long reserved = reservationRepository.countReservedPlacesByEventId(eventId);
+        long available = event.getCapaciteMax() - reserved;
+
+        if (nombrePlaces > available) {
+            throw new BusinessException("Nombre de places insuffisant. Places disponibles: " + available);
+        }
+
         Reservation reservation = new Reservation();
         reservation.setUtilisateur(user);
         reservation.setEvenement(event);
         reservation.setNombrePlaces(nombrePlaces);
+        reservation.setCommentaire(commentaire);
         reservation.setStatut(ReservationStatus.EN_ATTENTE);
 
         return reservationRepository.save(reservation);
     }
+
 
     @Override
     public Reservation updateReservationStatus(Long reservationId, ReservationStatus status) {
@@ -108,7 +108,7 @@ public class ReservationServiceImpl implements IReservationService {
         userService.getUserById(userId);
 
         try {
-            return reservationRepository.findByUtilisateurId(userId);
+            return reservationRepository.findByUtilisateurIdWithDetails(userId);
         } catch (Exception e) {
             return reservationRepository.findAll()
                     .stream()
@@ -119,16 +119,8 @@ public class ReservationServiceImpl implements IReservationService {
 
     @Override
     public List<Reservation> getReservationsByEvent(Long eventId) {
-        Event event = eventService.getEventById(eventId);
-
-        try {
-            return reservationRepository.findByEvenementId(eventId);
-        } catch (Exception e) {
-            return reservationRepository.findAll()
-                    .stream()
-                    .filter(r -> r.getEvenement() != null && r.getEvenement().getId().equals(eventId))
-                    .collect(Collectors.toList());
-        }
+        // ✅ IMPORTANT : utiliser JOIN FETCH
+        return reservationRepository.findByEvenementIdWithDetails(eventId);
     }
 
     @Override
@@ -166,8 +158,12 @@ public class ReservationServiceImpl implements IReservationService {
     }
 
     @Override
-    public Reservation confirmReservation(Long reservationId) {
-        return updateReservationStatus(reservationId, ReservationStatus.CONFIRMEE);
+    public void confirmReservation(Long reservationId) {
+        Reservation r = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Réservation introuvable"));
+
+        r.setStatut(ReservationStatus.CONFIRMEE);
+        reservationRepository.save(r);
     }
 
     @Override

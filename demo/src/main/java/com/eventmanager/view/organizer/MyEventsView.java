@@ -192,6 +192,15 @@ public class MyEventsView extends VerticalLayout {
         delete.addClickListener(e -> confirmDelete(event));
         actions.add(delete);
 
+        Button reservations = new Button("Réservations", VaadinIcon.TICKET.create());
+        reservations.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_TERTIARY);
+        reservations.addClickListener(e ->
+                getUI().ifPresent(ui ->
+                        ui.navigate("organizer/event/" + event.getId() + "/reservations")
+                )
+        );
+        actions.add(reservations);
+
         return actions;
     }
 

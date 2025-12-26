@@ -23,6 +23,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import java.util.Optional;
 @CssImport("./styles/styles.css")
+@CssImport("./styles/my-reservations-view.css")
 public class MainLayout extends AppLayout {
 
     private final AuthenticatedUser authenticatedUser;
@@ -122,7 +123,7 @@ public class MainLayout extends AppLayout {
             nav.addItem(new SideNavItem("Accueil", "home", VaadinIcon.HOME.create()));
             nav.addItem(new SideNavItem("Événements", "events", VaadinIcon.CALENDAR.create()));
 
-            if (userRole == UserRole.CLIENT) {
+            if (userRole == UserRole.CLIENT || userRole == UserRole.ORGANIZER || userRole == UserRole.ADMIN) {
                 nav.addItem(new SideNavItem("Mon Tableau de Bord", "dashboard", VaadinIcon.DASHBOARD.create()));
                 nav.addItem(new SideNavItem("Mes Réservations", "my-reservations", VaadinIcon.TICKET.create()));
                 nav.addItem(new SideNavItem("Mon Profil", "profile", VaadinIcon.USER.create()));

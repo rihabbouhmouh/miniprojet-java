@@ -6,38 +6,54 @@ import com.eventmanager.enums.EventStatus;
 import com.eventmanager.repository.EventRepository;
 import com.eventmanager.service.IEventService;
 import com.eventmanager.view.MainLayout;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.datetimepicker.DateTimePicker;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.*;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Route(value = "admin/events", layout = MainLayout.class)
-@PageTitle("Gestion des Événements - Admin")
+@PageTitle("Admin - Tous les événements")
 public class AllEventsManagementView extends VerticalLayout {
 
     private final IEventService eventService;
     private final EventRepository eventRepository;
-    private Grid<Event> eventGrid;
-    private List<Event> allEvents;
+
+    private Grid<Event> grid;
+    private List<Event> allEvents = new ArrayList<>();
     private ListDataProvider<Event> dataProvider;
+
     private TextField searchField;
     private ComboBox<EventCategory> categoryFilter;
     private ComboBox<EventStatus> statusFilter;
+
+    private Span countSpan;
+
+    private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public AllEventsManagementView(IEventService eventService, EventRepository eventRepository) {
         this.eventService = eventService;
@@ -46,201 +62,361 @@ public class AllEventsManagementView extends VerticalLayout {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
+        addClassNames(LumoUtility.Padding.LARGE, LumoUtility.Gap.MEDIUM);
 
-        // Header
-        H2 title = new H2("🎭 Gestion de Tous les Événements");
-        title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.Margin.Bottom.LARGE);
-        add(title);
+        add(buildHeader(), buildToolbar(), buildGridCard());
 
-        // Filters
-        add(createFiltersSection());
-
-        // Grid
-        add(createEventGrid());
-
-        // Load data
         loadEvents();
     }
 
-    private HorizontalLayout createFiltersSection() {
-        HorizontalLayout filters = new HorizontalLayout();
-        filters.setWidthFull();
-        filters.setSpacing(true);
-        filters.setAlignItems(Alignment.END);
+    // ---------- UI BUILDERS ----------
 
-        // Search field
+    private Component buildHeader() {
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setAlignItems(Alignment.CENTER);
+        header.setJustifyContentMode(JustifyContentMode.BETWEEN);
+
+        Div left = new Div();
+        H2 title = new H2("Gestion des événements");
+        title.getStyle().set("margin", "0");
+        Span subtitle = new Span("Tous les événements (tous organisateurs) — filtres + actions rapides");
+        subtitle.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
+
+        left.add(title, subtitle);
+
+        countSpan = new Span("—");
+        countSpan.getStyle()
+                .set("padding", "6px 10px")
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "999px")
+                .set("font-weight", "800")
+                .set("background", "var(--lumo-base-color)");
+
+        header.add(left, countSpan);
+        return header;
+    }
+
+    private Component buildToolbar() {
+        HorizontalLayout bar = new HorizontalLayout();
+        bar.setWidthFull();
+        bar.setSpacing(true);
+        bar.setAlignItems(Alignment.END);
+
+        bar.getStyle()
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "16px")
+                .set("padding", "14px")
+                .set("background", "var(--lumo-base-color)")
+                .set("box-shadow", "var(--lumo-box-shadow-s)");
+
         searchField = new TextField();
-        searchField.setPlaceholder("Rechercher par titre...");
+        searchField.setLabel("Recherche");
+        searchField.setPlaceholder("Titre, ville, organisateur…");
         searchField.setPrefixComponent(VaadinIcon.SEARCH.create());
-        searchField.setWidth("300px");
-        searchField.addValueChangeListener(e -> filterEvents());
+        searchField.setClearButtonVisible(true);
+        searchField.setWidth("360px");
+        searchField.addValueChangeListener(e -> applyFilters());
 
-        // Category filter
         categoryFilter = new ComboBox<>("Catégorie");
         categoryFilter.setItems(EventCategory.values());
         categoryFilter.setItemLabelGenerator(cat -> cat.getIcon() + " " + cat.getLabel());
         categoryFilter.setClearButtonVisible(true);
-        categoryFilter.setWidth("200px");
-        categoryFilter.addValueChangeListener(e -> filterEvents());
+        categoryFilter.setWidth("220px");
+        categoryFilter.addValueChangeListener(e -> applyFilters());
 
-        // Status filter
         statusFilter = new ComboBox<>("Statut");
         statusFilter.setItems(EventStatus.values());
         statusFilter.setClearButtonVisible(true);
-        statusFilter.setWidth("150px");
-        statusFilter.addValueChangeListener(e -> filterEvents());
+        statusFilter.setWidth("180px");
+        statusFilter.addValueChangeListener(e -> applyFilters());
 
-        // Refresh button
-        Button refreshButton = new Button("Actualiser", VaadinIcon.REFRESH.create());
-        refreshButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        refreshButton.addClickListener(e -> loadEvents());
+        Button reset = new Button("Réinitialiser", VaadinIcon.ROTATE_LEFT.create());
+        reset.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        reset.addClickListener(e -> {
+            searchField.clear();
+            categoryFilter.clear();
+            statusFilter.clear();
+            applyFilters();
+        });
 
-        filters.add(searchField, categoryFilter, statusFilter, refreshButton);
-        filters.expand(searchField);
+        Button refresh = new Button("Actualiser", VaadinIcon.REFRESH.create());
+        refresh.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        refresh.addClickListener(e -> loadEvents());
 
-        return filters;
+        bar.add(searchField, categoryFilter, statusFilter, reset, refresh);
+        bar.expand(searchField);
+        return bar;
     }
 
-    private Grid<Event> createEventGrid() {
-        eventGrid = new Grid<>(Event.class, false);
-        eventGrid.setSizeFull();
+    private Component buildGridCard() {
+        VerticalLayout card = new VerticalLayout();
+        card.setSizeFull();
+        card.setPadding(false);
+        card.setSpacing(false);
 
-        eventGrid.addColumn(Event::getId).setHeader("ID").setWidth("80px").setFlexGrow(0);
-        eventGrid.addColumn(Event::getTitre).setHeader("Titre").setAutoWidth(true);
-        eventGrid.addColumn(event -> event.getCategorie().getIcon() + " " + event.getCategorie().getLabel())
-                .setHeader("Catégorie").setAutoWidth(true);
-        eventGrid.addColumn(event -> event.getDateDebut()
-                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
-                .setHeader("Date de début").setAutoWidth(true);
-        eventGrid.addColumn(event -> event.getVille() + " - " + event.getLieu())
-                .setHeader("Lieu").setAutoWidth(true);
-        eventGrid.addColumn(event -> String.format("%.2f DH", event.getPrixUnitaire()))
-                .setHeader("Prix").setAutoWidth(true);
-        eventGrid.addColumn(event -> event.getCapaciteMax() + " places")
-                .setHeader("Capacité").setAutoWidth(true);
-        eventGrid.addColumn(event -> {
-            String status = event.getStatut().toString();
-            String color = switch (event.getStatut()) {
-                case PUBLIE -> "#4caf50";
-                case BROUILLON -> "#ff9800";
-                case ANNULE -> "#f44336";
-                case TERMINE -> "#9e9e9e";
-            };
-            Span statusSpan = new Span(status);
-            statusSpan.getStyle()
-                    .set("padding", "4px 8px")
-                    .set("border-radius", "4px")
-                    .set("background", color)
-                    .set("color", "white")
-                    .set("font-size", "0.75rem");
-            return statusSpan;
-        }).setHeader("Statut").setAutoWidth(true);
-        eventGrid.addColumn(event -> {
-            try {
-                if (event.getOrganisateur() != null) {
-                    return event.getOrganisateur().getPrenom() + " " + event.getOrganisateur().getNom();
-                }
-                return "N/A";
-            } catch (Exception e) {
-                return "N/A";
-            }
-        }).setHeader("Organisateur").setAutoWidth(true);
+        card.getStyle()
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "18px")
+                .set("overflow", "hidden")
+                .set("background", "var(--lumo-base-color)")
+                .set("box-shadow", "var(--lumo-box-shadow-m)");
 
-        // Actions column
-        eventGrid.addComponentColumn(event -> {
-            HorizontalLayout actions = new HorizontalLayout();
-            actions.setSpacing(true);
+        grid = new Grid<>(Event.class, false);
+        grid.setSizeFull();
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES);
 
-            // View button
-            Button viewButton = new Button("Voir", VaadinIcon.EYE.create());
-            viewButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            viewButton.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("event/" + event.getId())));
+        grid.addColumn(Event::getId)
+                .setHeader("ID")
+                .setWidth("80px")
+                .setFlexGrow(0);
 
-            // Change status button
-            Button statusButton = new Button("Statut", VaadinIcon.COG.create());
-            statusButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-            statusButton.addClickListener(e -> changeEventStatus(event));
+        grid.addColumn(Event::getTitre)
+                .setHeader("Titre")
+                .setAutoWidth(true)
+                .setFlexGrow(2);
 
-            actions.add(viewButton, statusButton);
-            return actions;
-        }).setHeader("Actions").setAutoWidth(true);
+        grid.addColumn(e -> e.getCategorie() != null ? (e.getCategorie().getIcon() + " " + e.getCategorie().getLabel()) : "—")
+                .setHeader("Catégorie")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
-        eventGrid.setAllRowsVisible(true);
-        return eventGrid;
+        grid.addColumn(e -> e.getDateDebut() != null ? e.getDateDebut().format(dtf) : "—")
+                .setHeader("Début")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(e -> safe(e.getVille()) + " — " + safe(e.getLieu()))
+                .setHeader("Lieu")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
+        grid.addColumn(e -> e.getPrixUnitaire() != null ? String.format("%.2f DH", e.getPrixUnitaire()) : "—")
+                .setHeader("Prix")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(e -> (e.getCapaciteMax() != null ? e.getCapaciteMax() : 0) + " places")
+                .setHeader("Capacité")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addComponentColumn(this::statusPill)
+                .setHeader("Statut")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        grid.addColumn(e -> {
+                    try {
+                        if (e.getOrganisateur() != null) {
+                            return safe(e.getOrganisateur().getPrenom()) + " " + safe(e.getOrganisateur().getNom());
+                        }
+                    } catch (Exception ignored) {}
+                    return "—";
+                })
+                .setHeader("Organisateur")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
+
+        grid.addComponentColumn(this::actionsCell)
+                .setHeader("Actions")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
+
+        // Optional: visually dim cancelled/finished
+        grid.setClassNameGenerator(e -> {
+            if (e == null || e.getStatut() == null) return "";
+            if (e.getStatut() == EventStatus.ANNULE || e.getStatut() == EventStatus.TERMINE) return "evt-row-muted";
+            return "";
+        });
+
+        card.add(grid);
+        return card;
     }
+
+    // ---------- DATA ----------
 
     private void loadEvents() {
-        // Use repository query that eagerly loads organisateur to avoid LazyInitializationException
+        // Must fetch organisateur to avoid lazy exceptions
         allEvents = eventRepository.findAllWithOrganisateur();
         dataProvider = new ListDataProvider<>(allEvents);
-        eventGrid.setDataProvider(dataProvider);
+        grid.setDataProvider(dataProvider);
+        applyFilters();
     }
 
-    private void filterEvents() {
-        String search = searchField.getValue();
-        EventCategory category = categoryFilter.getValue();
-        EventStatus status = statusFilter.getValue();
+    private void applyFilters() {
+        if (dataProvider == null) return;
 
-        List<Event> filtered = allEvents;
+        String q = searchField.getValue() != null ? searchField.getValue().trim().toLowerCase() : "";
+        EventCategory cat = categoryFilter.getValue();
+        EventStatus st = statusFilter.getValue();
 
-        if (search != null && !search.isEmpty()) {
-            String lowerSearch = search.toLowerCase();
-            filtered = filtered.stream()
-                    .filter(e -> e.getTitre().toLowerCase().contains(lowerSearch))
-                    .toList();
-        }
+        dataProvider.clearFilters();
 
-        if (category != null) {
-            filtered = filtered.stream()
-                    .filter(e -> e.getCategorie() == category)
-                    .toList();
-        }
+        dataProvider.addFilter(e -> {
+            boolean okQ = true;
+            if (!q.isEmpty()) {
+                String org = "";
+                if (e.getOrganisateur() != null) {
+                    org = (safe(e.getOrganisateur().getPrenom()) + " " + safe(e.getOrganisateur().getNom())).toLowerCase();
+                }
+                okQ =
+                        safe(e.getTitre()).toLowerCase().contains(q)
+                                || safe(e.getVille()).toLowerCase().contains(q)
+                                || safe(e.getLieu()).toLowerCase().contains(q)
+                                || org.contains(q);
+            }
 
-        if (status != null) {
-            filtered = filtered.stream()
-                    .filter(e -> e.getStatut() == status)
-                    .toList();
-        }
+            boolean okCat = (cat == null) || (e.getCategorie() == cat);
+            boolean okSt = (st == null) || (e.getStatut() == st);
 
-        dataProvider = new ListDataProvider<>(filtered);
-        eventGrid.setDataProvider(dataProvider);
+            return okQ && okCat && okSt;
+        });
+
+        countSpan.setText(dataProvider.getItems().size() + " événement(s)");
+        // countSpan currently shows total; if you want filtered count, compute it via stream on allEvents with same logic.
     }
 
-    private void changeEventStatus(Event event) {
-        ComboBox<EventStatus> statusCombo = new ComboBox<>("Nouveau statut");
-        statusCombo.setItems(EventStatus.values());
-        statusCombo.setValue(event.getStatut());
+    // ---------- CELLS ----------
 
-        VerticalLayout dialogContent = new VerticalLayout(statusCombo);
-        dialogContent.setSpacing(true);
+    private Component statusPill(Event e) {
+        EventStatus st = e.getStatut();
+        String label = st != null ? st.name() : "—";
 
-        com.vaadin.flow.component.dialog.Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
-        dialog.setHeaderTitle("Changer le statut de: " + event.getTitre());
+        Span pill = new Span(label);
+        pill.getStyle()
+                .set("padding", "4px 10px")
+                .set("border-radius", "999px")
+                .set("border", "1px solid var(--lumo-contrast-20pct)")
+                .set("font-weight", "800")
+                .set("font-size", "0.80rem");
 
-        Button saveButton = new Button("Enregistrer", VaadinIcon.CHECK.create());
-        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        saveButton.addClickListener(e -> {
+        if (st == EventStatus.PUBLIE) {
+            pill.getStyle().set("background", "var(--lumo-success-color-10pct)")
+                    .set("border-color", "var(--lumo-success-color-50pct)");
+        } else if (st == EventStatus.BROUILLON) {
+            pill.getStyle().set("background", "var(--lumo-warning-color-10pct)")
+                    .set("border-color", "var(--lumo-warning-color-50pct)");
+        } else if (st == EventStatus.ANNULE) {
+            pill.getStyle().set("background", "var(--lumo-error-color-10pct)")
+                    .set("border-color", "var(--lumo-error-color-50pct)");
+        } else {
+            pill.getStyle().set("background", "var(--lumo-contrast-5pct)")
+                    .set("border-color", "var(--lumo-contrast-20pct)")
+                    .set("color", "var(--lumo-secondary-text-color)");
+        }
+
+        return pill;
+    }
+
+    private Component actionsCell(Event e) {
+        boolean isPublished = e.getStatut() == EventStatus.PUBLIE;
+
+        Button view = iconBtn("Voir", VaadinIcon.EYE, ButtonVariant.LUMO_TERTIARY);
+        view.addClickListener(ev -> UI.getCurrent().navigate("event/" + e.getId()));
+
+        Button edit = iconBtn("Modifier", VaadinIcon.EDIT, ButtonVariant.LUMO_TERTIARY);
+        edit.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        edit.setEnabled(e.getStatut() != EventStatus.PUBLIE); // keep this rule
+        edit.addClickListener(ev -> openEditDialog(e));
+
+        Button publish = iconBtn("Publier", VaadinIcon.UPLOAD, ButtonVariant.LUMO_PRIMARY);
+        publish.setEnabled(e.getStatut() == EventStatus.BROUILLON);
+        publish.addClickListener(ev -> confirmStatusChange(e, EventStatus.PUBLIE,
+                "Publier l’événement ?",
+                "Une fois publié, vous ne pourrez plus changer son statut (règle admin)."));
+
+        Button cancel = iconBtn("Annuler", VaadinIcon.CLOSE_CIRCLE, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        // Your rule: if published, admin cannot modify status => disable cancel
+        cancel.setEnabled(!isPublished && e.getStatut() != EventStatus.ANNULE && e.getStatut() != EventStatus.TERMINE);
+        cancel.addClickListener(ev -> confirmStatusChange(e, EventStatus.ANNULE,
+                "Annuler l’événement ?",
+                "Cette action va annuler l’événement."));
+
+        Button delete = iconBtn("Supprimer", VaadinIcon.TRASH, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        // Usually we don’t allow deleting published events either
+        delete.setEnabled(!isPublished);
+        delete.addClickListener(ev -> confirmDelete(e));
+
+        HorizontalLayout row = new HorizontalLayout(view, edit, publish, cancel, delete);
+        row.setSpacing(true);
+        row.getStyle().set("flex-wrap", "wrap");
+        return row;
+    }
+
+    private Button iconBtn(String text, VaadinIcon icon, ButtonVariant... variants) {
+        Button b = new Button(text, icon.create());
+        b.addThemeVariants(variants);
+        b.getStyle().set("border-radius", "12px");
+        return b;
+    }
+
+    // ---------- ACTIONS ----------
+
+    private void confirmStatusChange(Event e, EventStatus target, String header, String body) {
+        // Core rule: published cannot change status
+        if (e.getStatut() == EventStatus.PUBLIE) {
+            showError("Impossible: un événement publié ne peut plus changer de statut.");
+            return;
+        }
+
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(header);
+        dialog.setText(body);
+
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Confirmer");
+        dialog.setConfirmButtonTheme(target == EventStatus.ANNULE ? "error primary" : "primary");
+
+        dialog.addConfirmListener(ev -> {
             try {
-                eventService.changeEventStatus(event.getId(), statusCombo.getValue());
-                showSuccess("Statut mis à jour avec succès");
-                dialog.close();
+                // Use your existing service method
+                eventService.changeEventStatus(e.getId(), target);
+                showSuccess("Statut mis à jour: " + target);
                 loadEvents();
             } catch (Exception ex) {
-                showError("Erreur: " + ex.getMessage());
+                showError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de la mise à jour du statut");
             }
         });
 
-        Button cancelButton = new Button("Annuler", VaadinIcon.CLOSE.create());
-        cancelButton.addClickListener(e -> dialog.close());
-
-        HorizontalLayout buttons = new HorizontalLayout(saveButton, cancelButton);
-        dialogContent.add(buttons);
-        dialog.add(dialogContent);
         dialog.open();
     }
 
+    private void confirmDelete(Event e) {
+        if (e.getStatut() == EventStatus.PUBLIE) {
+            showError("Impossible: un événement publié ne peut pas être supprimé.");
+            return;
+        }
+
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Supprimer l’événement ?");
+        dialog.setText("Cette action est irréversible.");
+
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Supprimer");
+        dialog.setConfirmButtonTheme("error primary");
+
+        dialog.addConfirmListener(ev -> {
+            try {
+                // If your service has deleteEvent(id), use it.
+                // Otherwise call repository delete (but service is better).
+                eventService.deleteEvent(e.getId()); // adjust if your method name differs
+                showSuccess("Événement supprimé.");
+                loadEvents();
+            } catch (Exception ex) {
+                showError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de la suppression");
+            }
+        });
+
+        dialog.open();
+    }
+
+    private String safe(String v) {
+        return (v == null || v.isBlank()) ? "—" : v;
+    }
+
     private void showSuccess(String message) {
-        Notification.show(message, 3000, Notification.Position.TOP_CENTER)
+        Notification.show(message, 2500, Notification.Position.TOP_CENTER)
                 .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
@@ -248,4 +424,165 @@ public class AllEventsManagementView extends VerticalLayout {
         Notification.show(message, 3000, Notification.Position.TOP_CENTER)
                 .addThemeVariants(NotificationVariant.LUMO_ERROR);
     }
+
+
+    private void openEditDialog(Event event) {
+    // Optional: block editing published events
+    if (event.getStatut() == EventStatus.PUBLIE) {
+        showError("Impossible de modifier un événement publié.");
+        return;
+    }
+
+    Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
+    dialog.setHeaderTitle("Modifier l’événement");
+
+    // Create a PATCH object (only fields we want to update)
+    Event patch = new Event();
+    patch.setTitre(event.getTitre());
+    patch.setDescription(event.getDescription());
+    patch.setCategorie(event.getCategorie());
+    patch.setDateDebut(event.getDateDebut());
+    patch.setDateFin(event.getDateFin());
+    patch.setLieu(event.getLieu());
+    patch.setVille(event.getVille());
+    patch.setCapaciteMax(event.getCapaciteMax());
+    patch.setPrixUnitaire(event.getPrixUnitaire());
+    // IMPORTANT: do NOT set imageUrl => no photo change
+
+    // Fields
+    TextField titre = new TextField("Titre");
+    titre.setWidthFull();
+
+    TextArea description = new TextArea("Description");
+    description.setWidthFull();
+    description.setMaxHeight("160px");
+
+    ComboBox<EventCategory> categorie = new ComboBox<>("Catégorie");
+    categorie.setItems(EventCategory.values());
+    categorie.setItemLabelGenerator(c -> c.getIcon() + " " + c.getLabel());
+    categorie.setWidthFull();
+
+    DateTimePicker dateDebut =
+            new DateTimePicker("Date début");
+    dateDebut.setWidthFull();
+
+    DateTimePicker dateFin =
+            new DateTimePicker("Date fin");
+    dateFin.setWidthFull();
+
+    TextField ville = new TextField("Ville");
+    ville.setWidthFull();
+
+    TextField lieu = new TextField("Lieu");
+    lieu.setWidthFull();
+
+    IntegerField capacite = new IntegerField("Capacité max");
+    capacite.setMin(1);
+    capacite.setStepButtonsVisible(true);
+    capacite.setWidthFull();
+
+    NumberField prix = new NumberField("Prix unitaire (DH)");
+    prix.setMin(0);
+    prix.setWidthFull();
+
+    // Binder
+    Binder<Event> binder = new Binder<>(Event.class);
+
+    binder.forField(titre)
+            .asRequired("Titre obligatoire")
+            .bind(Event::getTitre, Event::setTitre);
+
+    binder.forField(description)
+            .bind(Event::getDescription, Event::setDescription);
+
+    binder.forField(categorie)
+            .asRequired("Catégorie obligatoire")
+            .bind(Event::getCategorie, Event::setCategorie);
+
+    binder.forField(dateDebut)
+            .asRequired("Date début obligatoire")
+            .bind(Event::getDateDebut, Event::setDateDebut);
+
+    binder.forField(dateFin)
+            .asRequired("Date fin obligatoire")
+            .bind(Event::getDateFin, Event::setDateFin);
+
+    binder.forField(ville)
+            .asRequired("Ville obligatoire")
+            .bind(Event::getVille, Event::setVille);
+
+    binder.forField(lieu)
+            .asRequired("Lieu obligatoire")
+            .bind(Event::getLieu, Event::setLieu);
+
+    binder.forField(capacite)
+            .asRequired("Capacité obligatoire")
+            .bind(Event::getCapaciteMax, Event::setCapaciteMax);
+
+    binder.forField(prix)
+            .asRequired("Prix obligatoire")
+            .bind(Event::getPrixUnitaire, Event::setPrixUnitaire);
+
+    binder.setBean(patch);
+
+    // Layout
+    FormLayout form = new FormLayout();
+    form.setResponsiveSteps(
+            new FormLayout.ResponsiveStep("0", 1),
+            new FormLayout.ResponsiveStep("700px", 2)
+    );
+
+    form.add(titre, 2);
+    form.add(categorie, 2);
+    form.add(dateDebut, dateFin);
+    form.add(ville, lieu);
+    form.add(capacite, prix);
+    form.add(description, 2);
+
+    Button save = new Button("Enregistrer", VaadinIcon.CHECK.create());
+    save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    save.getStyle().set("border-radius", "12px");
+
+    Button cancel = new Button("Annuler", VaadinIcon.CLOSE.create());
+    cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+    cancel.getStyle().set("border-radius", "12px");
+
+    save.addClickListener(e -> {
+        // small validation: end after start
+        if (patch.getDateDebut() != null && patch.getDateFin() != null &&
+                !patch.getDateFin().isAfter(patch.getDateDebut())) {
+            showError("La date de fin doit être après la date de début.");
+            return;
+        }
+
+        if (!binder.validate().isOk()) {
+            showError("Veuillez corriger le formulaire.");
+            return;
+        }
+
+        try {
+            eventService.updateEvent(event.getId(), patch);
+            showSuccess("Événement mis à jour.");
+            dialog.close();
+            loadEvents();
+        } catch (Exception ex) {
+            showError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de la mise à jour.");
+        }
+    });
+
+    cancel.addClickListener(e -> dialog.close());
+
+    HorizontalLayout actions = new HorizontalLayout(cancel, save);
+    actions.setWidthFull();
+    actions.setJustifyContentMode(JustifyContentMode.END);
+
+    VerticalLayout content = new VerticalLayout(form, actions);
+    content.setSpacing(true);
+    content.setPadding(false);
+
+    dialog.add(content);
+    dialog.setWidth("900px");
+    dialog.open();
+}
+
 }

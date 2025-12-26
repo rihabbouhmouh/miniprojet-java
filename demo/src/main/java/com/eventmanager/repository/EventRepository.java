@@ -11,12 +11,22 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
     // Trouver les événements par catégorie
     List<Event> findByCategorie(EventCategory categorie);
+
+    @Query("""
+    SELECT e FROM Event e
+    LEFT JOIN FETCH e.organisateur
+    LEFT JOIN FETCH e.reservations
+    WHERE e.id = :id
+    """)
+    Optional<Event> findByIdWithDetails(@Param("id") Long id);
+
 
 
     // Trouver les événements publiés entre deux dates de création

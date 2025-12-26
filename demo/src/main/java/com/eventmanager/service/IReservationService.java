@@ -7,7 +7,7 @@ import java.util.Map;
 
 public interface IReservationService {
 
-    Reservation createReservation(Long userId, Long eventId, int nombrePlaces);
+    Reservation createReservation(Long userId, Long eventId, int nombrePlaces ,String commentaire);
 
     Reservation updateReservationStatus(Long reservationId, ReservationStatus status);
 
@@ -17,11 +17,12 @@ public interface IReservationService {
 
     List<Reservation> getReservationsByEvent(Long eventId);
 
+
     List<Reservation> getReservationsByStatus(ReservationStatus status);
 
     void cancelReservation(Long reservationId);
 
-    Reservation confirmReservation(Long reservationId);
+    void confirmReservation(Long reservationId);
 
     boolean checkEventAvailability(Long eventId, int requestedSeats);
 

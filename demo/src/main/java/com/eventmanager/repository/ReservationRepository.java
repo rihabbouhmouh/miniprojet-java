@@ -25,6 +25,24 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     // Réservations d'un utilisateur
     List<Reservation> findByUtilisateurId(Long utilisateurId);
 
+    @Query("""
+        SELECT r FROM Reservation r
+        JOIN FETCH r.evenement e
+        JOIN FETCH r.utilisateur u
+        WHERE u.id = :userId
+        ORDER BY r.dateReservation DESC
+    """)
+    List<Reservation> findByUtilisateurIdWithDetails(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT r FROM Reservation r
+    JOIN FETCH r.utilisateur
+    JOIN FETCH r.evenement
+    WHERE r.evenement.id = :eventId
+    """)
+    List<Reservation> findByEvenementIdWithDetails(@Param("eventId") Long eventId);
+
+
     // Réservations d'un événement avec statut donné
     List<Reservation> findByEvenementIdAndStatut(Long evenementId, ReservationStatus statut);
 

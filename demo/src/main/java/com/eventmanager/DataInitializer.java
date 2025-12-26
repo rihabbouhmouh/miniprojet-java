@@ -54,22 +54,22 @@ public class DataInitializer implements CommandLineRunner {
             List<Event> events = eventRepository.findAll();
 
             // Réservation 1
-            Reservation r1 = new Reservation(client, events.get(0), 2);
+            Reservation r1 = new Reservation(client, events.get(0), 2 ,"Impatient d'assister à cet événement !");
             r1.setStatut(ReservationStatus.CONFIRMEE);
             reservationRepository.save(r1);
 
             // Réservation 2
-            Reservation r2 = new Reservation(client, events.get(1), 1);
+            Reservation r2 = new Reservation(client, events.get(1), 1 ,"J'espère qu'il y aura encore des places disponibles.");
             r2.setStatut(ReservationStatus.EN_ATTENTE);
             reservationRepository.save(r2);
 
             // Réservation 3
-            Reservation r3 = new Reservation(client, events.get(2), 3);
+            Reservation r3 = new Reservation(client, events.get(2), 3 ,"Heureux de participer !");
             r3.setStatut(ReservationStatus.ANNULEE);
             reservationRepository.save(r3);
 
             // Réservation 4
-            Reservation r4 = new Reservation(client, events.get(3), 1);
+            Reservation r4 = new Reservation(client, events.get(3), 1 ,"Hâte de participer à cet événement !");
             r4.setStatut(ReservationStatus.CONFIRMEE);
             reservationRepository.save(r4);
 

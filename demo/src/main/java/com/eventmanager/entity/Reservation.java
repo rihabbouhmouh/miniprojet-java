@@ -47,43 +47,25 @@ public class Reservation {
     @PrePersist
     @PreUpdate
     private void validateAndCalculate() {
-        // 1. Génération automatique du code de réservation
         if (codeReservation == null) {
             String uuid = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
             this.codeReservation = "EVT-" + uuid;
         }
 
-        // 2. Calcul automatique du montant total
         if (evenement != null && nombrePlaces != null) {
-            this.montantTotal = evenement.getPrixUnitaire() * nombrePlaces;
-        }
-
-        // 3. Validation du nombre de places vs capacité
-        if (evenement != null && nombrePlaces != null) {
-            // Calculer les places déjà réservées (sans compter les annulées)
-            long placesReservees = evenement.getReservations().stream()
-                    .filter(r -> r != this && r.getStatut() != ReservationStatus.ANNULEE)
-                    .mapToLong(Reservation::getNombrePlaces)
-                    .sum();
-
-            long placesDisponibles = evenement.getCapaciteMax() - placesReservees;
-
-            if (nombrePlaces > placesDisponibles) {
-                throw new IllegalArgumentException(
-                        String.format("Nombre de places insuffisant. Disponible: %d, Demandé: %d",
-                                placesDisponibles, nombrePlaces)
-                );
-            }
+            this.montantTotal = (evenement.getPrixUnitaire() != null ? evenement.getPrixUnitaire() : 0.0) * nombrePlaces;
         }
     }
+
 
     // Constructeurs
     public Reservation() {}
 
-    public Reservation(User utilisateur, Event evenement, Integer nombrePlaces) {
+    public Reservation(User utilisateur, Event evenement, Integer nombrePlaces, String commentaire) {
         this.utilisateur = utilisateur;
         this.evenement = evenement;
         this.nombrePlaces = nombrePlaces;
+        this.commentaire = commentaire;
         // Appel manuel de la validation
         this.validateAndCalculate();
     }

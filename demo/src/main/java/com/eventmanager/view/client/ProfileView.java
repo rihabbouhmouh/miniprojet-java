@@ -1,329 +1,402 @@
 package com.eventmanager.view.client;
 
+import com.eventmanager.entity.Reservation;
 import com.eventmanager.entity.User;
-import com.eventmanager.enums.UserRole;
+import com.eventmanager.enums.ReservationStatus;
 import com.eventmanager.security.AuthenticatedUser;
-import com.eventmanager.security.NavigationManager;
+import com.eventmanager.service.IReservationService;
 import com.eventmanager.service.IUserService;
 import com.eventmanager.view.MainLayout;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.EmailField;
+import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.vaadin.flow.router.*;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Route(value = "profile", layout = MainLayout.class)
-@PageTitle("Profil Utilisateur - Event Manager")
-@AnonymousAllowed
-public class ProfileView extends VerticalLayout {
+@PageTitle("Mon Profil")
+public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
 
     private final IUserService userService;
+    private final IReservationService reservationService;
     private final AuthenticatedUser authenticatedUser;
-    private final NavigationManager navigationManager;
 
     private User user;
-    private Long userId;
-    private boolean isAdmin;
-    private boolean isEditing = false;
 
+    // Profile form
+    private final Binder<User> profileBinder = new Binder<>(User.class);
     private TextField nomField;
     private TextField prenomField;
     private EmailField emailField;
     private TextField telephoneField;
-    private ComboBox<UserRole> roleComboBox;
-    private ComboBox<Boolean> actifComboBox;
-    private Paragraph dateInscriptionField;
-    private Paragraph emailDisplayField;
 
-    private Button editButton;
-    private Button saveButton;
-    private Button cancelButton;
-    private Button backButton;
-
-    private Binder<User> binder;
+    // Password form
+    private PasswordField currentPasswordField;
+    private PasswordField newPasswordField;
+    private PasswordField confirmPasswordField;
 
     public ProfileView(IUserService userService,
-                       AuthenticatedUser authenticatedUser,
-                       NavigationManager navigationManager) {
+                       IReservationService reservationService,
+                       AuthenticatedUser authenticatedUser) {
         this.userService = userService;
+        this.reservationService = reservationService;
         this.authenticatedUser = authenticatedUser;
-        this.navigationManager = navigationManager;
 
         setSizeFull();
         setPadding(true);
         setSpacing(true);
-        
-        // Initialize on construction
-        this.isAdmin = authenticatedUser.get()
-                .map(u -> u.getRole() == UserRole.ADMIN)
-                .orElse(false);
-
-        authenticatedUser.get().ifPresentOrElse(
-                currentUser -> {
-                    this.userId = currentUser.getId();
-                    loadUser(currentUser.getId());
-                },
-                () -> {
-                    showError("Vous devez être connecté");
-                    navigationManager.navigateToLogin();
-                }
-        );
+        getStyle().set("background", "var(--lumo-base-color)");
     }
 
-    private void loadUser(Long userId) {
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (!authenticatedUser.isAuthenticated()) {
+            Notification.show("Veuillez vous connecter.", 2500, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+            event.forwardTo("login");
+            return;
+        }
+
+        Long userId = authenticatedUser.get()
+                .map(User::getId)
+                .orElse(null);
+
+        if (userId == null) {
+            event.forwardTo("login");
+            return;
+        }
+
         try {
             this.user = userService.getUserById(userId);
-            
-            // Check permissions: user can only edit their own profile unless they're admin
-            if (!isAdmin) {
-                authenticatedUser.getUserId().ifPresent(currentUserId -> {
-                    if (!currentUserId.equals(userId)) {
-                        showError("Vous n'avez pas la permission de modifier ce profil");
-                        navigationManager.navigateToProfile();
-                        return;
-                    }
-                });
-            }
-
-            createProfileView();
-        } catch (Exception e) {
-            showError("Utilisateur non trouvé");
-            navigationManager.navigateToHome();
+        } catch (Exception ex) {
+            notifyError("Impossible de charger votre profil.");
+            event.forwardTo("");
+            return;
         }
+
+        buildUI();
     }
 
-    private void createProfileView() {
+    private void buildUI() {
         removeAll();
 
-        // Back button
-        backButton = new Button("Retour", VaadinIcon.ARROW_LEFT.create());
-        backButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        backButton.addClickListener(e -> {
-            if (isAdmin && userId != null) {
-                navigationManager.navigateTo("admin/users");
-            } else {
-                navigationManager.navigateToHome();
-            }
-        });
-
-        // Title
-        H2 title = new H2(isAdmin && userId != null ? 
-                "👤 Profil Utilisateur (Admin)" : "👤 Mon Profil");
-        title.getStyle().set("margin", "0 0 var(--lumo-space-l) 0");
-
-        // Edit button (only for own profile or admin)
-        editButton = new Button("Modifier", VaadinIcon.EDIT.create());
-        editButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        editButton.addClickListener(e -> enableEditing());
-
-        HorizontalLayout header = new HorizontalLayout(title, editButton);
+        // Header
+        HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
-        header.setJustifyContentMode(JustifyContentMode.BETWEEN);
         header.setAlignItems(Alignment.CENTER);
+        header.setJustifyContentMode(JustifyContentMode.BETWEEN);
 
-        // Form
-        VerticalLayout formContainer = new VerticalLayout();
-        formContainer.setPadding(true);
-        formContainer.getStyle()
-                .set("background", "var(--lumo-base-color)")
-                .set("border", "1px solid var(--lumo-contrast-10pct)")
-                .set("border-radius", "var(--lumo-border-radius-l)")
-                .set("box-shadow", "var(--lumo-box-shadow-s)");
+        H2 title = new H2("Profil");
+        title.getStyle().set("margin", "0");
 
-        createFormFields();
-        createFormLayout();
+        Button logoutLike = new Button("Retour", VaadinIcon.ARROW_LEFT.create());
+        logoutLike.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        logoutLike.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("dashboard")));
 
-        formContainer.add(createFormLayout());
+        header.add(title, logoutLike);
 
-        add(backButton, header, formContainer);
+        // Sections
+        Component profileCard = buildProfileCard();
+        Component passwordCard = buildPasswordCard();
+        Component statsCard = buildStatsCard();
+        Component dangerCard = buildDangerCard();
+
+        add(header, profileCard, passwordCard, statsCard, dangerCard);
     }
 
-    private void createFormFields() {
+    // -------------------- PROFILE --------------------
+
+    private Component buildProfileCard() {
+        VerticalLayout card = card("Informations personnelles", "Modifiez vos informations. L’email n’est pas modifiable.");
+        card.setWidthFull();
+
         nomField = new TextField("Nom");
-        nomField.setWidthFull();
-        nomField.setReadOnly(!isEditing);
-
         prenomField = new TextField("Prénom");
-        prenomField.setWidthFull();
-        prenomField.setReadOnly(!isEditing);
-
         emailField = new EmailField("Email");
-        emailField.setWidthFull();
-        emailField.setReadOnly(true); // Email should not be editable
-
-        emailDisplayField = new Paragraph();
-        emailDisplayField.getStyle()
-                .set("margin", "0")
-                .set("padding", "var(--lumo-space-s)");
-
         telephoneField = new TextField("Téléphone");
+
+        nomField.setWidthFull();
+        prenomField.setWidthFull();
+        emailField.setWidthFull();
         telephoneField.setWidthFull();
-        telephoneField.setReadOnly(!isEditing);
 
+        emailField.setReadOnly(true);
 
-
-        roleComboBox = new ComboBox<>("Rôle");
-        roleComboBox.setItems(UserRole.values());
-        roleComboBox.setWidthFull();
-        roleComboBox.setReadOnly(!isEditing || !isAdmin); // Only admin can change role
-
-        actifComboBox = new ComboBox<>("Statut");
-        actifComboBox.setItems(true, false);
-        actifComboBox.setItemLabelGenerator(actif -> actif ? "Actif" : "Inactif");
-        actifComboBox.setWidthFull();
-        actifComboBox.setReadOnly(!isEditing || !isAdmin); // Only admin can change status
-
-        dateInscriptionField = new Paragraph();
-        dateInscriptionField.getStyle()
-                .set("margin", "0")
-                .set("padding", "var(--lumo-space-s)")
-                .set("color", "var(--lumo-secondary-text-color)");
-    }
-
-    private VerticalLayout createFormLayout() {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setSpacing(true);
-        layout.setPadding(true);
-
-        FormLayout formLayout = new FormLayout();
-        formLayout.setResponsiveSteps(
+        FormLayout form = new FormLayout();
+        form.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 2)
+                new FormLayout.ResponsiveStep("700px", 2)
         );
+        form.add(nomField, prenomField, emailField, telephoneField);
 
-        formLayout.add(nomField, 2);
-        formLayout.add(prenomField, 2);
-        
-        if (isEditing) {
-            formLayout.add(emailField, 2);
-        } else {
-            formLayout.add(emailDisplayField, 2);
-        }
-        
-        formLayout.add(telephoneField, 2);
-        
-        if (isAdmin) {
-            formLayout.add(roleComboBox, 1);
-            formLayout.add(actifComboBox, 1);
-        }
+        // Binder
+        profileBinder.bind(nomField, User::getNom, User::setNom);
+        profileBinder.bind(prenomField, User::getPrenom, User::setPrenom);
+        profileBinder.bind(emailField, User::getEmail, User::setEmail);
+        profileBinder.bind(telephoneField, User::getTelephone, User::setTelephone);
+        profileBinder.readBean(user);
 
-        // Read-only fields
-        H3 infoTitle = new H3("📅 Informations");
-        infoTitle.getStyle().set("margin", "var(--lumo-space-m) 0 var(--lumo-space-s) 0");
-        
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm");
-        dateInscriptionField.setText("Date d'inscription: " + 
-                (user.getDateInscription() != null ? 
-                        user.getDateInscription().format(formatter) : "N/A"));
+        Button save = new Button("Enregistrer", VaadinIcon.CHECK.create());
+        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        save.getStyle().set("border-radius", "12px");
+        save.addClickListener(e -> saveProfile());
 
-        // Action buttons
-        HorizontalLayout buttonLayout = new HorizontalLayout();
-        buttonLayout.setSpacing(true);
-        buttonLayout.setVisible(isEditing);
+        HorizontalLayout actions = new HorizontalLayout(save);
+        actions.setWidthFull();
+        actions.setJustifyContentMode(JustifyContentMode.END);
 
-        saveButton = new Button("Enregistrer", VaadinIcon.CHECK.create());
-        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        saveButton.addClickListener(e -> saveProfile());
+        // 가입 날짜
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        Span created = new Span("Inscrit le: " +
+                (user.getDateInscription() != null ? user.getDateInscription().format(fmt) : "—"));
+        created.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
-        cancelButton = new Button("Annuler", VaadinIcon.CLOSE.create());
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        cancelButton.addClickListener(e -> cancelEditing());
-
-        buttonLayout.add(saveButton, cancelButton);
-
-        layout.add(formLayout, infoTitle, dateInscriptionField, buttonLayout);
-
-        // Bind data
-        binder = new Binder<>(User.class);
-        binder.bind(nomField, User::getNom, User::setNom);
-        binder.bind(prenomField, User::getPrenom, User::setPrenom);
-        binder.bind(emailField, User::getEmail, User::setEmail);
-        binder.bind(telephoneField, User::getTelephone, User::setTelephone);
-        if (isAdmin) {
-            binder.bind(roleComboBox, User::getRole, User::setRole);
-            binder.bind(actifComboBox, User::getActif, User::setActif);
-        }
-        binder.readBean(user);
-
-        if (!isEditing) {
-            emailDisplayField.setText("Email: " + user.getEmail());
-        } else {
-            emailField.setValue(user.getEmail());
-        }
-
-        return layout;
-    }
-
-    private void enableEditing() {
-        isEditing = true;
-        editButton.setVisible(false);
-        nomField.setReadOnly(false);
-        prenomField.setReadOnly(false);
-        telephoneField.setReadOnly(false);
-
-        if (isAdmin) {
-            roleComboBox.setReadOnly(false);
-            actifComboBox.setReadOnly(false);
-        }
-        createProfileView(); // Recreate to show save/cancel buttons
+        card.add(form, created, actions);
+        return card;
     }
 
     private void saveProfile() {
         try {
-            if (binder.writeBeanIfValid(user)) {
-                // Update profile
-                userService.updateProfile(user.getId(), 
-                        user.getNom(), 
-                        user.getPrenom(),
-                        user.getEmail(), 
-                        user.getTelephone());
-
-                // If admin, update role and status
-                if (isAdmin) {
-                    if (user.getRole() != null) {
-                        userService.updateUserRole(user.getId(), user.getRole());
-                    }
-                    userService.toggleAccountStatus(user.getId(), user.getActif());
-                }
-
-                showSuccess("Profil mis à jour avec succès");
-                isEditing = false;
-                loadUser(user.getId()); // Reload to refresh view
-            } else {
-                showError("Veuillez corriger les erreurs dans le formulaire");
+            if (!profileBinder.writeBeanIfValid(user)) {
+                notifyWarn("Veuillez corriger les erreurs du formulaire.");
+                return;
             }
-        } catch (Exception e) {
-            showError("Erreur lors de la mise à jour: " + e.getMessage());
+
+            // Uses your existing method
+            userService.updateProfile(
+                    user.getId(),
+                    user.getNom(),
+                    user.getPrenom(),
+                    user.getEmail(),
+                    user.getTelephone()
+            );
+
+            notifySuccess("Profil mis à jour.");
+        } catch (Exception ex) {
+            notifyError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de la mise à jour.");
         }
     }
 
-    private void cancelEditing() {
-        isEditing = false;
-        loadUser(user.getId()); // Reload to reset view
+    // -------------------- PASSWORD --------------------
+
+    private Component buildPasswordCard() {
+        VerticalLayout card = card("Changer le mot de passe", "Utilisez un mot de passe fort (min 8 caractères).");
+        card.setWidthFull();
+
+        currentPasswordField = new PasswordField("Mot de passe actuel");
+        newPasswordField = new PasswordField("Nouveau mot de passe");
+        confirmPasswordField = new PasswordField("Confirmer le nouveau mot de passe");
+
+        currentPasswordField.setWidthFull();
+        newPasswordField.setWidthFull();
+        confirmPasswordField.setWidthFull();
+
+        FormLayout form = new FormLayout();
+        form.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("700px", 2)
+        );
+
+        form.add(currentPasswordField, newPasswordField);
+        form.add(confirmPasswordField, 2);
+
+        Button change = new Button("Mettre à jour le mot de passe", VaadinIcon.LOCK.create());
+        change.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        change.getStyle().set("border-radius", "12px");
+        change.addClickListener(e -> changePassword());
+
+        HorizontalLayout actions = new HorizontalLayout(change);
+        actions.setWidthFull();
+        actions.setJustifyContentMode(JustifyContentMode.END);
+
+        card.add(form, actions);
+        return card;
     }
 
-    private void showSuccess(String message) {
-        Notification notification = Notification.show(message, 3000, Notification.Position.TOP_CENTER);
-        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    private void changePassword() {
+        String oldPwd = currentPasswordField.getValue();
+        String newPwd = newPasswordField.getValue();
+        String confirm = confirmPasswordField.getValue();
+
+        if (oldPwd == null || oldPwd.isBlank()) {
+            notifyWarn("Veuillez saisir votre mot de passe actuel.");
+            return;
+        }
+        if (newPwd == null || newPwd.length() < 8) {
+            notifyWarn("Le nouveau mot de passe doit contenir au moins 8 caractères.");
+            return;
+        }
+        if (!newPwd.equals(confirm)) {
+            notifyWarn("La confirmation ne correspond pas.");
+            return;
+        }
+
+        try {
+            // You need a method like this in IUserService.
+            userService.changePassword(user.getId(), oldPwd, newPwd);
+
+            currentPasswordField.clear();
+            newPasswordField.clear();
+            confirmPasswordField.clear();
+
+            notifySuccess("Mot de passe mis à jour.");
+        } catch (Exception ex) {
+            notifyError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors du changement de mot de passe.");
+        }
     }
 
-    private void showError(String message) {
-        Notification notification = Notification.show(message, 3000, Notification.Position.TOP_CENTER);
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+    // -------------------- STATS --------------------
+
+    private Component buildStatsCard() {
+        VerticalLayout card = card("Statistiques personnelles", "Un aperçu rapide de votre activité.");
+        card.setWidthFull();
+
+        List<Reservation> list;
+        try {
+            list = reservationService.getReservationsByUser(user.getId());
+        } catch (Exception ex) {
+            list = List.of();
+        }
+
+        long total = list.size();
+        long pending = list.stream().filter(r -> r.getStatut() == ReservationStatus.EN_ATTENTE).count();
+        long confirmed = list.stream().filter(r -> r.getStatut() == ReservationStatus.CONFIRMEE).count();
+        long cancelled = list.stream().filter(r -> r.getStatut() == ReservationStatus.ANNULEE).count();
+
+        long upcoming = list.stream().filter(r ->
+                r.getStatut() != ReservationStatus.ANNULEE &&
+                        r.getEvenement() != null &&
+                        r.getEvenement().getDateDebut() != null &&
+                        r.getEvenement().getDateDebut().isAfter(LocalDateTime.now())
+        ).count();
+
+        // Simple “metric chips” (black/white, modern)
+        HorizontalLayout row = new HorizontalLayout(
+                metric("Total", String.valueOf(total), VaadinIcon.CLIPBOARD_TEXT),
+                metric("À venir", String.valueOf(upcoming), VaadinIcon.CALENDAR_CLOCK),
+                metric("Confirmées", String.valueOf(confirmed), VaadinIcon.CHECK),
+                metric("En attente", String.valueOf(pending), VaadinIcon.CLOCK),
+                metric("Annulées", String.valueOf(cancelled), VaadinIcon.CLOSE_CIRCLE)
+        );
+        row.setWidthFull();
+        row.getStyle().set("flex-wrap", "wrap");
+        row.setSpacing(true);
+
+        card.add(row);
+        return card;
+    }
+
+    private Component metric(String label, String value, VaadinIcon icon) {
+        VerticalLayout box = new VerticalLayout();
+        box.setPadding(true);
+        box.setSpacing(false);
+        box.setWidth("220px");
+        box.getStyle()
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "16px")
+                .set("background", "var(--lumo-base-color)")
+                .set("box-shadow", "var(--lumo-box-shadow-xs)");
+
+        HorizontalLayout top = new HorizontalLayout(icon.create(), new Span(label));
+        top.setAlignItems(Alignment.CENTER);
+        top.setSpacing(true);
+        top.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        H3 num = new H3(value);
+        num.getStyle().set("margin", "8px 0 0 0");
+
+        box.add(top, num);
+        return box;
+    }
+
+    // -------------------- DEACTIVATE --------------------
+
+    private Component buildDangerCard() {
+        VerticalLayout card = card("Désactiver le compte", "Vous pourrez le réactiver plus tard via un administrateur ou un support (selon votre logique).");
+        card.setWidthFull();
+        card.getStyle().set("border", "1px solid var(--lumo-error-color-50pct)");
+
+        Button deactivate = new Button("Désactiver mon compte", VaadinIcon.USER_CLOCK.create());
+        deactivate.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
+        deactivate.getStyle().set("border-radius", "12px");
+
+        deactivate.addClickListener(e -> {
+            ConfirmDialog dialog = new ConfirmDialog();
+            dialog.setHeader("Confirmation");
+            dialog.setText("Voulez-vous vraiment désactiver votre compte ?");
+
+            dialog.setCancelable(true);
+            dialog.setConfirmText("Oui, désactiver");
+            dialog.setConfirmButtonTheme("error primary");
+
+            dialog.addConfirmListener(ev -> {
+                try {
+                    // Deactivate account
+                    userService.toggleAccountStatus(user.getId(), false);
+                    notifySuccess("Compte désactivé.");
+
+                    // Optionally log out / go to login
+                    getUI().ifPresent(ui -> ui.navigate("login"));
+                } catch (Exception ex) {
+                    notifyError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de la désactivation.");
+                }
+            });
+
+            dialog.open();
+        });
+
+        card.add(deactivate);
+        return card;
+    }
+
+    // -------------------- UI helpers --------------------
+
+    private VerticalLayout card(String title, String subtitle) {
+        VerticalLayout card = new VerticalLayout();
+        card.setPadding(true);
+        card.setSpacing(true);
+        card.getStyle()
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "18px")
+                .set("background", "var(--lumo-base-color)")
+                .set("box-shadow", "var(--lumo-box-shadow-s)");
+
+        H3 h = new H3(title);
+        h.getStyle().set("margin", "0");
+
+        Span sub = new Span(subtitle);
+        sub.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+        card.add(h, sub, new Hr());
+        return card;
+    }
+
+    private void notifySuccess(String msg) {
+        Notification.show(msg, 2500, Notification.Position.TOP_CENTER)
+                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    private void notifyWarn(String msg) {
+        Notification.show(msg, 2500, Notification.Position.TOP_CENTER)
+                .addThemeVariants(NotificationVariant.LUMO_WARNING);
+    }
+
+    private void notifyError(String msg) {
+        Notification.show(msg, 3000, Notification.Position.TOP_CENTER)
+                .addThemeVariants(NotificationVariant.LUMO_ERROR);
     }
 }
