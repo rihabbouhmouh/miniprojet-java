@@ -211,3 +211,12 @@ VALUES
 (5, 15, 2, 200.0, CURRENT_TIMESTAMP, 'EN_ATTENTE', 'EVT-00018', NULL),
 (5, 12, 4, 300.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00019', 'Réservation archive'),
 (5, 14, 2, 160.0, CURRENT_TIMESTAMP, 'ANNULEE', 'EVT-00020', 'Annulé (brouillon)');
+
+
+-- ------------------------------------------------
+-- ✅ FIX: Resynchroniser les IDENTITY (auto-increment)
+-- (Obligatoire car on insère des IDs manuellement)
+-- ------------------------------------------------
+ALTER TABLE users ALTER COLUMN id RESTART WITH (SELECT COALESCE(MAX(id), 0) + 1 FROM users);
+ALTER TABLE events ALTER COLUMN id RESTART WITH (SELECT COALESCE(MAX(id), 0) + 1 FROM events);
+ALTER TABLE reservations ALTER COLUMN id RESTART WITH (SELECT COALESCE(MAX(id), 0) + 1 FROM reservations);
