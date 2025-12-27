@@ -24,6 +24,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import java.util.Optional;
 @CssImport("./styles/styles.css")
 @CssImport("./styles/my-reservations-view.css")
+@CssImport("./styles/home-view.css")
 public class MainLayout extends AppLayout {
 
     private final AuthenticatedUser authenticatedUser;

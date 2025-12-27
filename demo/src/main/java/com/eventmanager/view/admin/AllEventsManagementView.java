@@ -193,7 +193,7 @@ public class AllEventsManagementView extends VerticalLayout {
 
         grid.addColumn(e -> e.getPrixUnitaire() != null ? String.format("%.2f DH", e.getPrixUnitaire()) : "—")
                 .setHeader("Prix")
-                .setAutoWidth(true)
+                .setWidth("120px")
                 .setFlexGrow(0);
 
         grid.addColumn(e -> (e.getCapaciteMax() != null ? e.getCapaciteMax() : 0) + " places")
@@ -203,7 +203,7 @@ public class AllEventsManagementView extends VerticalLayout {
 
         grid.addComponentColumn(this::statusPill)
                 .setHeader("Statut")
-                .setAutoWidth(true)
+                .setWidth("180px")
                 .setFlexGrow(0);
 
         grid.addColumn(e -> {

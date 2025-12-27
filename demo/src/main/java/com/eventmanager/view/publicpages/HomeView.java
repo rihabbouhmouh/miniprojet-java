@@ -4,647 +4,459 @@ import com.eventmanager.entity.Event;
 import com.eventmanager.enums.EventCategory;
 import com.eventmanager.service.IEventService;
 import com.eventmanager.view.MainLayout;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouterLink;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.List;
 
-/**
- * HomeView - Main landing page
- * Shows featured events, search functionality, and filters
- * Accessible without authentication
- */
 @Route(value = "home", layout = MainLayout.class)
+@PageTitle("EventHub - Discover Amazing Events")
 public class HomeView extends VerticalLayout {
 
     private final IEventService eventService;
 
-    // UI Components
-    private TextField searchField;
-    private ComboBox<EventCategory> categoryFilter;
-    private DatePicker dateFilter;
-    private TextField cityFilter;
-    private Button searchButton;
-    private Button resetButton;
+    private TextField keywordField;
+    private TextField cityField;
+    private ComboBox<EventCategory> categoryField;
+    private DatePicker dateField;
 
-    private Div featuredEventsContainer;
-    private Div allEventsContainer;
+    private Div featuredGrid;
+    private Div eventsGrid;
 
-    // Formatters
-    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
-    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+    private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    private final DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
 
     public HomeView(IEventService eventService) {
         this.eventService = eventService;
 
-        // Configure main layout
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        addClassName("home-view");
+        addClassName("home");
 
-        // Build the page
         add(
-                createHeroSection(),
-                createSearchSection(),
-                createAllEventsSection(),
-                createFeaturedSection(),
-                createFooter()
+                buildHero(),
+                buildSearchCard(),
+                buildAllEventsSection(),
+                buildFeaturedSection(),
+                buildFooter()
         );
 
-        // Load initial data
-        loadFeaturedEvents();
-        loadAllEvents();
+        reloadFeatured();
+        reloadAllEvents();
     }
 
-    /**
-     * Create header with logo and navigation
-     */
-    private HorizontalLayout createHeader() {
-        HorizontalLayout header = new HorizontalLayout();
-        header.setWidthFull();
-        header.setPadding(true);
-        header.setSpacing(true);
-        header.addClassName("header");
-        // a gradient white navbar
-        header.getStyle()
-                .set("background", "white")
-                .set("color", "white")
-                .set("box-shadow", "0 2px 8px rgba(0,0,0,0.1)");
+    /* ---------------------------
+       HERO
+     --------------------------- */
+    private Component buildHero() {
+        Div hero = new Div();
+        hero.addClassName("home-hero");
 
-        // Logo
-        H2 logo = new H2("🎭 EventHub");
-        logo.getStyle()
-                .set("margin", "0")
-                // make the emoji bigger
-                .set("font-size", "2rem")
-                .set("cursor", "pointer");
+        Div inner = new Div();
+        inner.addClassName("home-hero-inner");
 
-        // Navigation buttons
-        Button loginButton = new Button("Login", VaadinIcon.SIGN_IN.create());
-        loginButton.addClassName("home-login-btn");
-        loginButton.getStyle()
-                .set("margin-bottom", "10px")
-                .set("font-weight", "600")
-                .set("font-size", "1rem")
-                .set("padding", "14px")
-                .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
-                .set("border", "none")
-                .set("box-shadow", "0 4px 12px rgba(0,0,0,0.1)")
-                .set("color", "white")
-                .set("border-radius", "12px")
-                .set("cursor", "pointer");
-        loginButton.addClickListener(e -> {
-            // Navigate to login page
-            getUI().ifPresent(ui -> ui.navigate("login"));
-        });
+        H1 title = new H1("Discover events you’ll actually want to attend.");
+        title.addClassName("home-hero-title");
 
-        Button registerButton = new Button("Register", VaadinIcon.USER.create());
-        registerButton.addClassName("home-register-btn");
-        registerButton.addClickListener(e -> {
-            // Navigate to register page
-            getUI().ifPresent(ui -> ui.navigate("register"));
-        });
+        Paragraph subtitle = new Paragraph("Concerts, theatre, conferences, festivals — browse, filter, and book in seconds.");
+        subtitle.addClassName("home-hero-subtitle");
 
-        HorizontalLayout navButtons = new HorizontalLayout(loginButton, registerButton);
-        navButtons.setSpacing(true);
+        HorizontalLayout actions = new HorizontalLayout();
+        actions.addClassName("home-hero-actions");
 
-        header.add(logo);
-        header.add(navButtons);
-        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        Button browseBtn = new Button("Browse events", VaadinIcon.SEARCH.create());
+        browseBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        browseBtn.addClassName("btn-pill");
+        browseBtn.addClickListener(e ->
+                getUI().ifPresent(ui ->
+                        ui.getPage().executeJs("document.querySelector('.home-section-all')?.scrollIntoView({behavior:'smooth'})")
+                )
+        );
 
-        return header;
-    }
+        Button featuredBtn = new Button("See featured", VaadinIcon.STAR.create());
+        featuredBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        featuredBtn.addClassName("btn-pill");
+        featuredBtn.addClickListener(e ->
+                getUI().ifPresent(ui ->
+                        ui.getPage().executeJs("document.querySelector('.home-section-featured')?.scrollIntoView({behavior:'smooth'})")
+                )
+        );
 
-    /**
-     * Create hero section with welcome message
-     */
-    private VerticalLayout createHeroSection() {
-        VerticalLayout hero = new VerticalLayout();
-        hero.setWidthFull();
-        hero.setPadding(true);
-        hero.setSpacing(true);
-        hero.getStyle()
-                .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
-                .set("color", "white")
-                .set("padding", "60px 20px")
-                .set("text-align", "center");
+        actions.add(browseBtn, featuredBtn);
 
-        H1 title = new H1("🎉 Discover Amazing Events");
-        title.getStyle()
-                .set("margin", "0")
-                .set("font-size", "3rem")
-                .set("line-height", "1.2")
-                .set("letter-spacing", "-0.05em")
-                .set("text-shadow", "0 4px 12px rgba(0,0,0,0.2)")
-                .set("opacity", "0.9")
-                .set("font-weight", "bold");
-
-        Paragraph subtitle = new Paragraph("Find concerts, theatre shows, conferences and more near you");
-        subtitle.getStyle()
-                .set("font-size", "1.2rem")
-                .set("opacity", "0.9")
-                .set("max-width", "600px")
-                .set("margin", "10px auto");
-
-        hero.add(title, subtitle);
-        hero.setAlignItems(FlexComponent.Alignment.CENTER);
+        inner.add(title, subtitle, actions);
+        hero.add(inner);
 
         return hero;
     }
 
-    /**
-     * Create search and filter section
-     */
-    private VerticalLayout createSearchSection() {
-        VerticalLayout searchSection = new VerticalLayout();
-        searchSection.setWidthFull();
-        searchSection.setPadding(true);
-        searchSection.setSpacing(true);
-        searchSection.getStyle()
-                .set("background", "white")
-                .set("box-shadow", "0 4px 12px rgba(0,0,0,0.1)")
-                .set("border-radius", "12px")
-                .set("margin", "-30px auto 40px")
-                .set("max-width", "1200px")
-                .set("padding", "30px");
+    /* ---------------------------
+       SEARCH CARD
+     --------------------------- */
+    private Component buildSearchCard() {
+        Div wrap = new Div();
+        wrap.addClassName("home-search-wrap");
 
-        // Title
-        H3 searchTitle = new H3("🔍 Search Events");
-        searchTitle.getStyle().set("margin-top", "0");
+        Div card = new Div();
+        card.addClassName("home-search-card");
 
-        // Search fields
-        HorizontalLayout searchRow = new HorizontalLayout();
-        searchRow.setWidthFull();
-        searchRow.setSpacing(true);
+        Div header = new Div();
+        header.addClassName("home-search-header");
 
-        // Keyword search
-        searchField = new TextField();
-        searchField.setPlaceholder("Search by title or keyword...");
-        searchField.setPrefixComponent(VaadinIcon.SEARCH.create());
-        searchField.setWidthFull();
-        searchField.getStyle().set("min-width", "250px");
+        H3 h = new H3("Search events");
+        h.addClassName("home-search-title");
 
-        // City filter
-        cityFilter = new TextField();
-        cityFilter.setPlaceholder("City");
-        cityFilter.setPrefixComponent(VaadinIcon.MAP_MARKER.create());
-        cityFilter.setWidth("200px");
+        Span hint = new Span("Use filters to find the perfect event.");
+        hint.addClassName("home-search-hint");
 
-        // Category filter
-        categoryFilter = new ComboBox<>();
-        categoryFilter.setPlaceholder("Category");
-        categoryFilter.setItems(EventCategory.values());
-        categoryFilter.setItemLabelGenerator(cat -> cat.getLabel() + " " + cat.getIcon());
-        categoryFilter.setWidth("200px");
+        header.add(h, hint);
 
-        // Date filter
-        dateFilter = new DatePicker();
-        dateFilter.setPlaceholder("Select date");
-        dateFilter.setWidth("200px");
+        // Fields
+        keywordField = new TextField("Title / keyword");
+        keywordField.setPlaceholder("e.g. Jazz, Expo, AI...");
+        keywordField.setPrefixComponent(VaadinIcon.SEARCH.create());
+        keywordField.setClearButtonVisible(true);
+
+        cityField = new TextField("City");
+        cityField.setPlaceholder("e.g. Rabat");
+        cityField.setPrefixComponent(VaadinIcon.MAP_MARKER.create());
+        cityField.setClearButtonVisible(true);
+
+        categoryField = new ComboBox<>("Category");
+        categoryField.setItems(EventCategory.values());
+        categoryField.setItemLabelGenerator(EventCategory::getLabel);
+        categoryField.setClearButtonVisible(true);
+
+        dateField = new DatePicker("Date");
+        dateField.setClearButtonVisible(true);
+
+        FormLayout form = new FormLayout();
+        form.addClassName("home-search-form");
+        form.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("700px", 2),
+                new FormLayout.ResponsiveStep("1050px", 4)
+        );
+
+        form.add(keywordField, cityField, categoryField, dateField);
 
         // Buttons
-        searchButton = new Button("Search", VaadinIcon.SEARCH.create());
-        searchButton.getStyle().set("cursor", "pointer");
-        searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        searchButton.addClickListener(e -> performSearch());
+        HorizontalLayout buttons = new HorizontalLayout();
+        buttons.addClassName("home-search-actions");
 
-        resetButton = new Button("Reset", VaadinIcon.REFRESH.create());
-        resetButton.getStyle().set("cursor", "pointer");
-        resetButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
-        resetButton.addClickListener(e -> resetFilters());
+        Button searchBtn = new Button("Search", VaadinIcon.SEARCH.create());
+        searchBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        searchBtn.addClassName("btn-pill");
+        searchBtn.addClickListener(e -> performSearch());
 
-        searchRow.add(searchField, cityFilter, categoryFilter, dateFilter, searchButton, resetButton);
-        searchRow.setAlignItems(FlexComponent.Alignment.END);
+        Button resetBtn = new Button("Reset", VaadinIcon.REFRESH.create());
+        resetBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        resetBtn.addClassName("btn-pill");
+        resetBtn.addClickListener(e -> {
+            keywordField.clear();
+            cityField.clear();
+            categoryField.clear();
+            dateField.clear();
+            reloadAllEvents();
+        });
 
-        searchSection.add(searchTitle, searchRow);
+        buttons.add(searchBtn, resetBtn);
 
-        return searchSection;
+        card.add(header, form, buttons);
+        wrap.add(card);
+        return wrap;
     }
 
-    /**
-     * Create featured events section
-     */
-    private VerticalLayout createFeaturedSection() {
-        VerticalLayout featuredSection = new VerticalLayout();
-        featuredSection.setWidthFull();
-        featuredSection.setPadding(true);
-        featuredSection.setSpacing(true);
-        featuredSection.getStyle()
-                .set("max-width", "1200px")
-                .set("margin", "0 auto");
+    /* ---------------------------
+       FEATURED SECTION
+     --------------------------- */
+    private Component buildFeaturedSection() {
+        Div section = new Div();
+        section.addClassNames("home-section", "home-section-featured");
 
-        H2 title = new H2("⭐ Featured Events");
-        title.getStyle()
-                .set("color", "#667eea")
-                .set("margin-bottom", "20px");
+        Div head = new Div();
+        head.addClassName("home-section-head");
 
-        featuredEventsContainer = new Div();
-        featuredEventsContainer.setWidthFull();
-        featuredEventsContainer.getStyle()
-                .set("display", "grid")
-                .set("grid-template-columns", "repeat(auto-fill, minmax(350px, 1fr))")
-                .set("gap", "24px");
+        H2 title = new H2("Featured events");
+        title.addClassName("home-section-title");
 
-        featuredSection.add(title, featuredEventsContainer);
+        Span badge = new Span("POPULAR");
+        badge.addClassName("pill-badge");
 
-        return featuredSection;
+        head.add(title, badge);
+
+        featuredGrid = new Div();
+        featuredGrid.addClassName("events-grid");
+
+        section.add(head, featuredGrid);
+        return section;
     }
 
-    /**
-     * Create all events section
-     */
-    private VerticalLayout createAllEventsSection() {
-        VerticalLayout allEventsSection = new VerticalLayout();
-        allEventsSection.setWidthFull();
-        allEventsSection.setPadding(true);
-        allEventsSection.setSpacing(true);
-        allEventsSection.getStyle()
-                .set("max-width", "1200px")
-                .set("margin", "40px auto")
-                .set("background", "#f8f9fa")
-                .set("border-radius", "12px")
-                .set("padding", "30px");
+    /* ---------------------------
+       ALL EVENTS SECTION
+     --------------------------- */
+    private Component buildAllEventsSection() {
+        Div section = new Div();
+        section.addClassNames("home-section", "home-section-all");
 
-        H2 title = new H2("📅 All Upcoming Events");
-        title.getStyle()
-                .set("color", "#333")
-                .set("margin-bottom", "20px");
+        Div head = new Div();
+        head.addClassName("home-section-head");
 
-        allEventsContainer = new Div();
-        allEventsContainer.setWidthFull();
-        allEventsContainer.getStyle()
-                .set("display", "grid")
-                .set("grid-template-columns", "repeat(auto-fill, minmax(300px, 1fr))")
-                .set("gap", "20px");
+        H2 title = new H2("All upcoming events");
+        title.addClassName("home-section-title");
 
-        allEventsSection.add(title, allEventsContainer);
+        head.add(title);
 
-        return allEventsSection;
+        eventsGrid = new Div();
+        eventsGrid.addClassName("events-grid");
+
+        section.add(head, eventsGrid);
+        return section;
     }
 
-    /**
-     * Create footer
-     */
-    private Footer createFooter() {
+    /* ---------------------------
+       FOOTER
+     --------------------------- */
+    private Component buildFooter() {
         Footer footer = new Footer();
-        footer.setWidthFull(); // occupe toute la largeur
+        footer.addClassName("home-footer");
 
-        footer.getStyle()
-                .set("background", "#1e2a38")
-                .set("color", "white")
-                .set("padding", "40px 20px")
-                .set("margin-top", "40px");
+        Div inner = new Div();
+        inner.addClassName("home-footer-inner");
 
-        // Conteneur centré
-        Div content = new Div();
-        content.getStyle()
-                .set("max-width", "1200px")
-                .set("margin", "0 auto")
-                .set("display", "flex")
-                .set("flex-direction", "column")
-                .set("align-items", "center")
-                .set("gap", "20px")
-                .set("text-align", "center");
+        Paragraph p = new Paragraph("© 2026 EventHub — All rights reserved.");
+        p.addClassName("home-footer-text");
 
-        // ---- Liens ----
-        HorizontalLayout links = new HorizontalLayout();
-        links.setSpacing(true);
-        links.setPadding(false);
-        links.setMargin(false);
-
-        Anchor about = new Anchor("#", "About");
-        Anchor contact = new Anchor("#", "Contact");
-        Anchor privacy = new Anchor("#", "Privacy Policy");
-
-        about.getStyle().set("color", "white");
-        contact.getStyle().set("color", "white");
-        privacy.getStyle().set("color", "white");
-
-        links.add(about, contact, privacy);
-
-        // ---- Séparateur ----
-        Div separator = new Div();
-        separator.getStyle()
-                .set("width", "80%")
-                .set("height", "1px")
-                .set("background", "rgba(255,255,255,0.2)");
-
-        // ---- Texte Copyright ----
-        Paragraph footerText = new Paragraph("© 2024 EventHub - All rights reserved");
-        footerText.getStyle()
-                .set("margin", "0")
-                .set("opacity", "0.8");
-
-        content.add(links, separator, footerText);
-        footer.add(content);
+        inner.add(p);
+        footer.add(inner);
 
         return footer;
     }
 
+    /* ---------------------------
+       DATA LOADERS
+     --------------------------- */
+    private void reloadFeatured() {
+        featuredGrid.removeAll();
+        try {
+            List<Event> featured = eventService.getPopularEvents(6);
+            if (featured == null || featured.isEmpty()) {
+                featuredGrid.add(emptyState("No featured events yet."));
+                return;
+            }
+            featured.forEach(e -> featuredGrid.add(eventCard(e, true)));
+        } catch (Exception ex) {
+            featuredGrid.add(errorState("Error loading featured events: " + ex.getMessage()));
+        }
+    }
 
-
-    /**
-     * Load all available events
-     */
-    private void loadAllEvents() {
-        allEventsContainer.removeAll();
-
+    private void reloadAllEvents() {
+        eventsGrid.removeAll();
         try {
             List<Event> events = eventService.getAvailableEvents();
-
-            if (events.isEmpty()) {
-                Paragraph noEvents = new Paragraph("No events available at the moment.");
-                noEvents.getStyle().set("color", "#666");
-                allEventsContainer.add(noEvents);
+            if (events == null || events.isEmpty()) {
+                eventsGrid.add(emptyState("No events available right now."));
                 return;
             }
-
-            events.forEach(event -> {
-                Div eventCard = createEventCard(event, false);
-                allEventsContainer.add(eventCard);
-            });
-
-        } catch (Exception e) {
-            Paragraph error = new Paragraph("Error loading events: " + e.getMessage());
-            error.getStyle().set("color", "red");
-            allEventsContainer.add(error);
+            events.forEach(e -> eventsGrid.add(eventCard(e, false)));
+        } catch (Exception ex) {
+            eventsGrid.add(errorState("Error loading events: " + ex.getMessage()));
         }
     }
 
-    /**
-     * Load featured/popular events
-     */
-    private void loadFeaturedEvents() {
-        featuredEventsContainer.removeAll();
-
-        try {
-            List<Event> featuredEvents = eventService.getPopularEvents(6); // Get top 6
-
-            if (featuredEvents.isEmpty()) {
-                Paragraph noEvents = new Paragraph("No featured events at the moment.");
-                noEvents.getStyle().set("color", "#666");
-                featuredEventsContainer.add(noEvents);
-                return;
-            }
-
-            featuredEvents.forEach(event -> {
-                Div eventCard = createEventCard(event, true);
-                featuredEventsContainer.add(eventCard);
-            });
-
-        } catch (Exception e) {
-            Paragraph error = new Paragraph("Error loading featured events: " + e.getMessage());
-            error.getStyle().set("color", "red");
-            featuredEventsContainer.add(error);
-        }
-    }
-
-
-
-    /**
-     * Create event card component
-     */
-    private Div createEventCard(Event event, boolean isFeatured) {
-        Div card = new Div();
-        card.getStyle()
-                .set("background", "white")
-                .set("border-radius", "12px")
-                .set("overflow", "hidden")
-                .set("box-shadow", isFeatured ? "0 8px 24px rgba(0,0,0,0.15)" : "0 4px 12px rgba(0,0,0,0.1)")
-                .set("transition", "transform 0.2s, box-shadow 0.2s")
-                .set("cursor", "pointer")
-                .set("border", isFeatured ? "2px solid #ffd700" : "none");
-
-        // Hover effect
-        card.getElement().addEventListener("mouseenter", e -> {
-            card.getStyle()
-                    .set("transform", "translateY(-8px)")
-                    .set("box-shadow", "0 12px 32px rgba(0,0,0,0.2)");
-        });
-        card.getElement().addEventListener("mouseleave", e -> {
-            card.getStyle()
-                    .set("transform", "translateY(0)")
-                    .set("box-shadow", isFeatured ? "0 8px 24px rgba(0,0,0,0.15)" : "0 4px 12px rgba(0,0,0,0.1)");
-        });
-
-        // Click to view details
-        card.addClickListener(e -> {
-            getUI().ifPresent(ui -> ui.navigate("event/" + event.getId()));
-        });
-
-        // Event Image
-        Div imageContainer = new Div();
-        imageContainer.getStyle()
-                .set("width", "100%")
-                .set("height", "200px")
-                .set("background", "linear-gradient(135deg, " + event.getCategorie().getColor() + " 0%, #667eea 100%)")
-                .set("display", "flex")
-                .set("align-items", "center")
-                .set("justify-content", "center")
-                .set("position", "relative");
-
-        // Category badge
-        Span categoryBadge = new Span(event.getCategorie().getIcon() + " " + event.getCategorie().getLabel());
-        categoryBadge.getStyle()
-                .set("position", "absolute")
-                .set("top", "10px")
-                .set("right", "10px")
-                .set("background", "white")
-                .set("color", event.getCategorie().getColor())
-                .set("padding", "4px 12px")
-                .set("border-radius", "20px")
-                .set("font-size", "0.85rem")
-                .set("font-weight", "600")
-                .set("box-shadow", "0 2px 8px rgba(0,0,0,0.2)");
-
-        // Event icon (if no image)
-        Span iconSpan = new Span(event.getCategorie().getIcon());
-        iconSpan.getStyle()
-                .set("font-size", "4rem")
-                .set("color", "white");
-
-        imageContainer.add(iconSpan, categoryBadge);
-
-        // Event Details
-        VerticalLayout details = new VerticalLayout();
-        details.setPadding(true);
-        details.setSpacing(true);
-
-        // Title
-        H3 title = new H3(event.getTitre());
-        title.getStyle()
-                .set("margin", "0 0 8px 0")
-                .set("font-size", "1.3rem")
-                .set("color", "#333")
-                .set("overflow", "hidden")
-                .set("text-overflow", "ellipsis")
-                .set("white-space", "nowrap");
-
-        // Date and time
-        HorizontalLayout dateTimeLayout = new HorizontalLayout();
-        dateTimeLayout.setSpacing(true);
-        dateTimeLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        Icon calendarIcon = VaadinIcon.CALENDAR.create();
-        calendarIcon.setSize("16px");
-        calendarIcon.setColor("#667eea");
-
-        Span dateSpan = new Span(event.getDateDebut().format(dateFormatter) + " at " +
-                event.getDateDebut().format(timeFormatter));
-        dateSpan.getStyle()
-                .set("font-size", "0.9rem")
-                .set("color", "#666");
-
-        dateTimeLayout.add(calendarIcon, dateSpan);
-
-        // Location
-        HorizontalLayout locationLayout = new HorizontalLayout();
-        locationLayout.setSpacing(true);
-        locationLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        Icon locationIcon = VaadinIcon.MAP_MARKER.create();
-        locationIcon.setSize("16px");
-        locationIcon.setColor("#e74c3c");
-
-        Span locationSpan = new Span(event.getVille() + " - " + event.getLieu());
-        locationSpan.getStyle()
-                .set("font-size", "0.9rem")
-                .set("color", "#666")
-                .set("overflow", "hidden")
-                .set("text-overflow", "ellipsis")
-                .set("white-space", "nowrap");
-
-        locationLayout.add(locationIcon, locationSpan);
-
-        // Available seats
-        HorizontalLayout seatsLayout = new HorizontalLayout();
-        seatsLayout.setSpacing(true);
-        seatsLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        Icon seatsIcon = VaadinIcon.USERS.create();
-        seatsIcon.setSize("16px");
-        seatsIcon.setColor("#27ae60");
-
-        int availableSeats = eventService.getAvailableSeats(event);
-        Span seatsSpan = new Span(availableSeats + " seats available");
-        seatsSpan.getStyle()
-                .set("font-size", "0.9rem")
-                .set("color", availableSeats > 0 ? "#27ae60" : "#e74c3c")
-                .set("font-weight", "600");
-
-        seatsLayout.add(seatsIcon, seatsSpan);
-
-        // Price and Book button
-        HorizontalLayout footer = new HorizontalLayout();
-        footer.setWidthFull();
-        footer.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        footer.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        Span priceSpan = new Span(String.format("%.2f DH", event.getPrixUnitaire()));
-        priceSpan.getStyle()
-                .set("font-size", "1.5rem")
-                .set("font-weight", "bold")
-                .set("color", "#667eea");
-
-        Button viewButton = new Button("View Details", VaadinIcon.ARROW_RIGHT.create());
-        viewButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
-        viewButton.addClickListener(e -> {
-            e.getSource().getUI().ifPresent(ui -> ui.navigate("event/" + event.getId()));
-        });
-
-        footer.add(priceSpan, viewButton);
-
-        details.add(title, dateTimeLayout, locationLayout, seatsLayout, footer);
-
-        card.add(imageContainer, details);
-
-        return card;
-    }
-
-    /**
-     * Perform search with filters
-     */
     private void performSearch() {
-        allEventsContainer.removeAll();
+        eventsGrid.removeAll();
 
-        String keyword = searchField.getValue();
-        String city = cityFilter.getValue();
-        EventCategory category = categoryFilter.getValue();
-        LocalDate selectedDate = dateFilter.getValue();
+        String keyword = safeTrim(keywordField.getValue());
+        String city = safeTrim(cityField.getValue());
+        EventCategory category = categoryField.getValue();
+        LocalDate date = dateField.getValue();
 
         try {
-            List<Event> results;
-
-            // If date is selected, convert to LocalDateTime
-            LocalDateTime startDate = selectedDate != null ?
-                    selectedDate.atStartOfDay() : null;
-
-            // Use the search method
-            results = eventService.searchEventsByFilters(
-                    keyword != null && !keyword.isEmpty() ? keyword : null,
-                    city != null && !city.isEmpty() ? city : null,
+            List<Event> results = eventService.searchEventsByFilters(
+                    keyword.isEmpty() ? null : keyword,
+                    city.isEmpty() ? null : city,
                     category,
-                    null, // minPrice
-                    null  // maxPrice
+                    null,
+                    null
             );
 
-            // Filter by date if provided
-            if (startDate != null) {
+            if (date != null) {
                 results = results.stream()
-                        .filter(e -> e.getDateDebut().toLocalDate().equals(selectedDate))
+                        .filter(e -> e.getDateDebut() != null && e.getDateDebut().toLocalDate().equals(date))
                         .toList();
             }
 
             if (results.isEmpty()) {
-                Paragraph noResults = new Paragraph("😕 No events found matching your criteria.");
-                noResults.getStyle()
-                        .set("text-align", "center")
-                        .set("color", "#666")
-                        .set("padding", "40px");
-                allEventsContainer.add(noResults);
+                eventsGrid.add(emptyState("No events match your search."));
                 return;
             }
 
-            results.forEach(event -> {
-                Div eventCard = createEventCard(event, false);
-                allEventsContainer.add(eventCard);
-            });
+            results.forEach(e -> eventsGrid.add(eventCard(e, false)));
 
-        } catch (Exception e) {
-            Paragraph error = new Paragraph("Error searching events: " + e.getMessage());
-            error.getStyle().set("color", "red");
-            allEventsContainer.add(error);
+        } catch (Exception ex) {
+            eventsGrid.add(errorState("Search error: " + ex.getMessage()));
         }
     }
 
-    /**
-     * Reset all filters
-     */
-    private void resetFilters() {
-        searchField.clear();
-        cityFilter.clear();
-        categoryFilter.clear();
-        dateFilter.clear();
-        loadAllEvents();
+    /* ---------------------------
+       EVENT CARD
+     --------------------------- */
+    private Component eventCard(Event event, boolean featured) {
+        Div card = new Div();
+        card.addClassName("event-card");
+
+        // Image area
+        Div img = new Div();
+        img.addClassName("event-card-image");
+
+        String url = event.getImageUrl();
+        if (url != null && !url.isBlank()) {
+            img.getStyle().set("background-image", "url('" + url + "')");
+        } else {
+            // fallback gradient (still white theme, but nice)
+            String c = (event.getCategorie() != null ? event.getCategorie().getColor() : "#6b7280");
+            img.getStyle().set("background-image", "linear-gradient(135deg, " + c + ", #a5b4fc)");
+        }
+
+        // Badges
+        if (featured) {
+            Span f = new Span("FEATURED");
+            f.addClassNames("event-badge", "event-badge-featured");
+            img.add(f);
+        }
+
+        Span cat = new Span(event.getCategorie() != null ? event.getCategorie().getLabel() : "Other");
+        cat.addClassNames("event-badge", "event-badge-category");
+        img.add(cat);
+
+        // Body
+        Div body = new Div();
+        body.addClassName("event-card-body");
+
+        H3 title = new H3(event.getTitre() != null ? event.getTitre() : "Untitled event");
+        title.addClassName("event-title");
+
+        Div meta1 = metaRow(VaadinIcon.CALENDAR.create(), safeDateTime(event.getDateDebut()));
+        Div meta2 = metaRow(VaadinIcon.MAP_MARKER.create(), safeLocation(event));
+
+        int available = 0;
+        try {
+            available = eventService.getAvailableSeats(event);
+        } catch (Exception ignored) {}
+
+        Div meta3 = metaRow(VaadinIcon.USERS.create(), available + " seats available");
+        meta3.addClassName(available <= 0 ? "meta-danger" : available < 20 ? "meta-warn" : "meta-ok");
+
+        Div divider = new Div();
+        divider.addClassName("event-divider");
+
+        Div footer = new Div();
+        footer.addClassName("event-card-footer");
+
+        Div priceBox = new Div();
+        priceBox.addClassName("price-box");
+
+        Span priceLabel = new Span("Price");
+        priceLabel.addClassName("price-label");
+
+        Span priceValue = new Span(String.format("%.2f DH", event.getPrixUnitaire() != null ? event.getPrixUnitaire() : 0.0));
+        priceValue.addClassName("price-value");
+
+        priceBox.add(priceLabel, priceValue);
+
+        Button view = new Button("View", VaadinIcon.ARROW_RIGHT.create());
+        view.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        view.addClassName("btn-view");
+        view.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("event/" + event.getId())));
+
+        footer.add(priceBox, view);
+
+        body.add(title, meta1, meta2, meta3, divider, footer);
+
+        card.add(img, body);
+
+        // Entire card clickable too
+        card.getElement().addEventListener("click", e ->
+                getUI().ifPresent(ui -> ui.navigate("event/" + event.getId()))
+        );
+
+        return card;
+    }
+
+    private Div metaRow(Icon icon, String text) {
+        Div row = new Div();
+        row.addClassName("event-meta");
+
+        icon.setSize("18px");
+        icon.getStyle().set("opacity", "0.85");
+
+        Span t = new Span(text);
+        t.addClassName("event-meta-text");
+
+        row.add(icon, t);
+        return row;
+    }
+
+    private Component emptyState(String msg) {
+        Div box = new Div();
+        box.addClassName("state-box");
+
+        Icon icon = VaadinIcon.INFO_CIRCLE.create();
+        icon.setSize("36px");
+        icon.getStyle().set("opacity", "0.35");
+
+        Span t = new Span(msg);
+        t.addClassName("state-text");
+
+        box.add(icon, t);
+        return box;
+    }
+
+    private Component errorState(String msg) {
+        Div box = new Div();
+        box.addClassNames("state-box", "state-error");
+
+        Icon icon = VaadinIcon.WARNING.create();
+        icon.setSize("36px");
+
+        Span t = new Span(msg);
+        t.addClassName("state-text");
+
+        box.add(icon, t);
+        return box;
+    }
+
+    private String safeTrim(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private String safeLocation(Event e) {
+        String v = (e.getVille() != null ? e.getVille() : "");
+        String l = (e.getLieu() != null ? e.getLieu() : "");
+        String out = (v + (v.isBlank() || l.isBlank() ? "" : " • ") + l).trim();
+        return out.isBlank() ? "Location not specified" : out;
+    }
+
+    private String safeDateTime(LocalDateTime dt) {
+        if (dt == null) return "Date not specified";
+        return dt.format(dateFmt) + " • " + dt.format(timeFmt);
     }
 }
