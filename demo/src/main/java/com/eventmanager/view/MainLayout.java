@@ -294,7 +294,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Mes réservations", "my-reservations", com.vaadin.flow.component.icon.VaadinIcon.TICKET.create()));
         nav.addItem(new SideNavItem("Mon profil", "profile", com.vaadin.flow.component.icon.VaadinIcon.USER.create()));
 
-        // Organizer group (parent WITHOUT route to avoid weird navigation)
+        // Organizer group 
         if (role == UserRole.ORGANIZER) {
             SideNavItem organizerGroup = new SideNavItem("Organisateur", "", com.vaadin.flow.component.icon.VaadinIcon.BRIEFCASE.create());
             organizerGroup.addItem(new SideNavItem("Dashboard", "organizer/dashboard", com.vaadin.flow.component.icon.VaadinIcon.CHART.create()));
@@ -303,7 +303,7 @@ public class MainLayout extends AppLayout {
             nav.addItem(organizerGroup);
         }
 
-        // Admin group (parent WITHOUT route)
+        // Admin group
         if (role == UserRole.ADMIN) {
             SideNavItem adminGroup = new SideNavItem("Administration","", com.vaadin.flow.component.icon.VaadinIcon.COG.create());
             adminGroup.addItem(new SideNavItem("Dashboard", "admin/dashboard", com.vaadin.flow.component.icon.VaadinIcon.CHART_GRID.create()));

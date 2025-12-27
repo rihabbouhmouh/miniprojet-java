@@ -8,6 +8,7 @@ import com.eventmanager.service.IReservationService;
 import com.eventmanager.service.IUserService;
 import com.eventmanager.view.MainLayout;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -246,7 +247,6 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         }
 
         try {
-            // You need a method like this in IUserService.
             userService.changePassword(user.getId(), oldPwd, newPwd);
 
             currentPasswordField.clear();
@@ -349,8 +349,8 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
                     userService.toggleAccountStatus(user.getId(), false);
                     notifySuccess("Compte désactivé.");
 
-                    // Optionally log out / go to login
-                    getUI().ifPresent(ui -> ui.navigate("login"));
+                    // Logout user
+                    UI.getCurrent().getPage().setLocation("/logout");
                 } catch (Exception ex) {
                     notifyError(ex.getMessage() != null ? ex.getMessage() : "Erreur lors de la désactivation.");
                 }

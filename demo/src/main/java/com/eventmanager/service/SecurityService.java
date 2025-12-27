@@ -3,7 +3,7 @@ package com.eventmanager.service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-@Service("passwordSecurityService") // ✅ Nouveau nom de bean unique
+@Service("passwordSecurityService") // Unique bean name
 public class SecurityService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();

@@ -210,7 +210,7 @@ public class MyEventsView extends VerticalLayout {
         header.add(tableTitle, hint);
 
         grid = createGrid();
-        grid.setAllRowsVisible(true); // important: no tiny table feeling
+        grid.setAllRowsVisible(true); // no tiny table feeling
         setSizeFull();
         grid.setWidthFull();
         grid.setSizeFull();
@@ -449,7 +449,7 @@ public class MyEventsView extends VerticalLayout {
         dialog.open();
     }
 
-    /* ================= EDIT DIALOG (YOUR LOGIC KEPT) ================= */
+    /* ================= EDIT DIALOG  ================= */
 
     private void openEditDialog(Event original) {
         Event event = eventService.getEventById(original.getId());
@@ -484,7 +484,7 @@ public class MyEventsView extends VerticalLayout {
         description.setWidthFull();
         description.setMinHeight("120px");
 
-        // Editable copy (as you had)
+        // Editable copy
         Event edited = new Event();
         edited.setId(event.getId());
         edited.setOrganisateur(event.getOrganisateur());

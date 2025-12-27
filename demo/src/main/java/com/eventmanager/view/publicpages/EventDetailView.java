@@ -49,7 +49,7 @@ public class EventDetailView extends VerticalLayout implements BeforeEnterObserv
 
         if (eventId == null) {
             notifyError("ID événement manquant");
-            e.forwardTo("events"); // change if your list route is different
+            e.forwardTo("events"); 
             return;
         }
 
@@ -57,7 +57,7 @@ public class EventDetailView extends VerticalLayout implements BeforeEnterObserv
             this.event = eventService.getEventById(eventId);
         } catch (Exception ex) {
             notifyError("Événement introuvable");
-            e.forwardTo("events"); // change if your list route is different
+            e.forwardTo("events"); 
             return;
         }
 
@@ -110,7 +110,7 @@ public class EventDetailView extends VerticalLayout implements BeforeEnterObserv
 
         header.add(title, badges);
 
-        // Image block (optional)
+        // Image block 
         Component imageBlock = buildImageBlock();
 
         // Content: left info + right reservation card
@@ -132,10 +132,10 @@ public class EventDetailView extends VerticalLayout implements BeforeEnterObserv
 
         card.add(content);
 
-        // Google Maps (bonus) - simple iframe based on lieu+ville
+        // Google Maps - simple iframe based on lieu+ville
         card.add(buildMapBlock());
 
-        // Back button (simple)
+        // Back button
         Button back = new Button("Retour", VaadinIcon.ARROW_LEFT.create());
         back.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         back.addClickListener(ev -> getUI().ifPresent(ui -> ui.navigate("events"))); // adjust route if needed
@@ -220,7 +220,7 @@ public class EventDetailView extends VerticalLayout implements BeforeEnterObserv
 
         int available = 0;
         try {
-            available = eventService.getAvailableSeats(event); // ✅ uses your method
+            available = eventService.getAvailableSeats(event);
         } catch (Exception ex) {
             available = 0;
         }

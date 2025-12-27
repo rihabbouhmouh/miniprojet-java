@@ -179,7 +179,7 @@ public class EventListView extends VerticalLayout {
         cityCombo = new ComboBox<>("Ville");
         cityCombo.setPlaceholder("Casablanca, Rabat...");
         cityCombo.setClearButtonVisible(true);
-        cityCombo.setAllowCustomValue(true); // ✅ allow typing cities not in list
+        cityCombo.setAllowCustomValue(true); // allow typing cities not in list
         cityCombo.setWidth("260px");
         cityCombo.addValueChangeListener(e -> applyFilters());
         cityCombo.addCustomValueSetListener(e -> {
@@ -277,8 +277,6 @@ public class EventListView extends VerticalLayout {
                 .set("gap", "18px");
 
         // Make it responsive
-        // (Vaadin inline style can’t do media queries, but grid auto-wrap works if we switch template)
-        // We'll keep 3 columns desktop; on smaller screens it will overflow less if browser reduces.
         cardsGrid.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(320px, 1fr))");
 
         // Vaadin Grid (table view)
@@ -295,7 +293,7 @@ public class EventListView extends VerticalLayout {
     private Grid<Event> createGrid() {
         Grid<Event> g = new Grid<>(Event.class, false);
         g.setWidthFull();
-        g.setHeight("600px"); // ✅ important: if you want it taller, increase this
+        g.setHeight("600px");
         g.getStyle()
                 .set("background", "white")
                 .set("border-radius", "14px")
@@ -384,7 +382,7 @@ public class EventListView extends VerticalLayout {
     private void loadAllEvents() {
         allEvents = new ArrayList<>(eventService.getAvailableEvents());
 
-        // ✅ City autocomplete items
+        // City autocomplete items
         List<String> cities = allEvents.stream()
                 .map(Event::getVille)
                 .filter(Objects::nonNull)
@@ -459,7 +457,7 @@ public class EventListView extends VerticalLayout {
             case "Titre" -> filteredSorted.sort(Comparator.comparing(e -> safe(e.getTitre()).toLowerCase()));
 
             case "Popularité" -> {
-                // ✅ Popularity approximation using remaining seats (less remaining = more popular)
+                // Popularity approximation using remaining seats (less remaining = more popular)
                 filteredSorted.sort(Comparator.comparingInt(e -> {
                     try {
                         return eventService.getAvailableSeats(e);
@@ -543,7 +541,7 @@ public class EventListView extends VerticalLayout {
                 .set("transform", "translateY(0)")
                 .set("box-shadow", "0 6px 18px rgba(0,0,0,0.08)"));
 
-        // Top image (optional)
+        // Top image 
         Div img = new Div();
         img.getStyle()
                 .set("height", "170px")

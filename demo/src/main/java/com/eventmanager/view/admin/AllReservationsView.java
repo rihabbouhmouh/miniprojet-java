@@ -430,7 +430,7 @@ public class AllReservationsView extends VerticalLayout {
             cancel.addClickListener(e -> updateStatus(r, ReservationStatus.ANNULEE));
             layout.add(cancel);
         } else if (r.getStatut() == ReservationStatus.CONFIRMEE) {
-            // Optional: show locked cancel (disabled) so user understands why there isn't a button
+            // show locked cancel (disabled) so user understands why there isn't a button
             Button locked = new Button(VaadinIcon.LOCK.create());
             locked.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
             locked.setEnabled(false);

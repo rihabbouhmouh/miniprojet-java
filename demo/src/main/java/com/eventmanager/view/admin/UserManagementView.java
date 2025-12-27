@@ -140,10 +140,13 @@ public class UserManagementView extends VerticalLayout {
         return wrapContainer(card);
     }
 
-
     private Component buildGridCard() {
         Div card = new Div();
         card.addClassName("card");
+
+        // Don't force full height, only full width.
+        // This prevents the grid from being trapped in a limited height container.
+        card.setWidthFull();
 
         Div head = new Div();
         head.addClassName("card-head");
@@ -159,9 +162,15 @@ public class UserManagementView extends VerticalLayout {
         userGrid = new Grid<>(User.class, false);
         userGrid.addClassName("user-grid");
         userGrid.setWidthFull();
-        userGrid.setHeight("520px"); // ✅ important: prevents bad layout / scrollbars
-        userGrid.setSelectionMode(Grid.SelectionMode.NONE);
 
+        // Remove fixed height => let grid grow & page scroll normally
+        // (fixed height creates internal scroll)
+        // userGrid.setHeight("520px");  <-- REMOVE
+
+        // Show all rows (no internal grid scrollbar)
+        userGrid.setAllRowsVisible(true);
+
+        userGrid.setSelectionMode(Grid.SelectionMode.NONE);
 
         userGrid.addColumn(new ComponentRenderer<>(this::nameCell))
                 .setHeader("Utilisateur")
@@ -169,9 +178,9 @@ public class UserManagementView extends VerticalLayout {
                 .setFlexGrow(0);
 
         userGrid.addColumn(User::getEmail)
-        .setHeader("Email")
-        .setWidth("280px")
-        .setFlexGrow(0);
+                .setHeader("Email")
+                .setWidth("280px")
+                .setFlexGrow(0);
 
         userGrid.addColumn(user -> user.getTelephone() != null ? user.getTelephone() : "—")
                 .setHeader("Téléphone")
@@ -202,7 +211,12 @@ public class UserManagementView extends VerticalLayout {
 
         Div body = new Div(userGrid);
         body.addClassName("card-body");
-        body.addClassName("grid-body"); // add this class
+        body.addClassName("grid-body");
+        body.setWidthFull();
+
+        // Override any CSS that limits height / forces scroll
+        body.getStyle().set("height", "auto");
+        body.getStyle().set("overflow", "visible");
 
         card.add(head, body);
         return wrapContainer(card);
@@ -274,13 +288,11 @@ public class UserManagementView extends VerticalLayout {
         actions.addClassName("actions-wrap");
         actions.setSpacing(true);
 
-        // Edit
         Button editButton = new Button("Modifier", VaadinIcon.EDIT.create());
         editButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         editButton.addClassName("btn");
         editButton.addClickListener(e -> openEditUserDialog(user));
 
-        // Toggle
         Button toggleButton = new Button(
                 user.getActif() != null && user.getActif() ? "Désactiver" : "Activer",
                 user.getActif() != null && user.getActif() ? VaadinIcon.BAN.create() : VaadinIcon.CHECK.create()
@@ -299,13 +311,11 @@ public class UserManagementView extends VerticalLayout {
             toggleButton.addClickListener(e -> toggleUserStatus(user));
         }
 
-        // Change role (only for non-admin users + (recommended) not yourself)
         if (user.getRole() != UserRole.ADMIN) {
             Button roleButton = new Button("Rôle", VaadinIcon.USER.create());
             roleButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             roleButton.addClassName("btn");
 
-            // Optional safety: do not change your own role
             if (isMe) {
                 roleButton.setEnabled(false);
                 roleButton.getElement().setProperty("title", "C’est votre compte — rôle non modifiable ici.");
@@ -362,7 +372,7 @@ public class UserManagementView extends VerticalLayout {
 
         return users.stream()
                 .sorted(Comparator
-                        .comparing((User u) -> !currentAdminId.equals(u.getId())) // false first => me on top
+                        .comparing((User u) -> !currentAdminId.equals(u.getId()))
                         .thenComparing(User::getId))
                 .toList();
     }

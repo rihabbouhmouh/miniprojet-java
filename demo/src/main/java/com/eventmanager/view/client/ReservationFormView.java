@@ -82,7 +82,7 @@ public class ReservationFormView extends VerticalLayout implements BeforeEnterOb
         Long eventId = e.getRouteParameters().get("id").map(Long::valueOf).orElse(null);
         if (eventId == null) {
             notifyError("ID événement manquant");
-            e.forwardTo("events"); // adjust if needed
+            e.forwardTo("events"); 
             return;
         }
 
@@ -90,7 +90,7 @@ public class ReservationFormView extends VerticalLayout implements BeforeEnterOb
             this.event = eventService.getEventById(eventId);
         } catch (Exception ex) {
             notifyError("Événement introuvable");
-            e.forwardTo("events"); // adjust if needed
+            e.forwardTo("events"); 
             return;
         }
 
@@ -133,7 +133,7 @@ public class ReservationFormView extends VerticalLayout implements BeforeEnterOb
         Span subtitle = new Span(s(event.getTitre(), "Événement"));
         subtitle.addClassNames(LumoUtility.TextColor.SECONDARY);
 
-        // Optional: small event info row
+        // small event info row
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         Div meta = new Div();
         meta.getStyle()

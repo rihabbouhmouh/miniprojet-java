@@ -28,11 +28,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByDateInscriptionAfter(LocalDateTime date);
 
-    // CORRIGEZ cette méthode ou supprimez-la temporairement
+    
     @Query("SELECT u FROM User u WHERE " +
             "(:nom IS NULL OR LOWER(u.nom) LIKE LOWER(CONCAT('%', :nom, '%'))) AND " +
             "(:prenom IS NULL OR LOWER(u.prenom) LIKE LOWER(CONCAT('%', :prenom, '%'))) AND " +
-            "(:role IS NULL OR u.userRole = :role) AND " +  // CORRECTION : userRole au lieu de role
+            "(:role IS NULL OR u.userRole = :role) AND " + 
             "(:actif IS NULL OR u.actif = :actif)")
     List<User> searchUsers(@Param("nom") String nom,
                            @Param("prenom") String prenom,

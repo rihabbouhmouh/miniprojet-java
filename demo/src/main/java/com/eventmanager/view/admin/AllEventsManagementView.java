@@ -274,7 +274,7 @@ public class AllEventsManagementView extends VerticalLayout {
         });
 
         countSpan.setText(dataProvider.getItems().size() + " événement(s)");
-        // countSpan currently shows total; if you want filtered count, compute it via stream on allEvents with same logic.
+        // countSpan currently shows total
     }
 
     // ---------- CELLS ----------
@@ -317,7 +317,7 @@ public class AllEventsManagementView extends VerticalLayout {
 
         Button edit = iconBtn("Modifier", VaadinIcon.EDIT, ButtonVariant.LUMO_TERTIARY);
         edit.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        edit.setEnabled(e.getStatut() != EventStatus.PUBLIE); // keep this rule
+        edit.setEnabled(e.getStatut() != EventStatus.PUBLIE);
         edit.addClickListener(ev -> openEditDialog(e));
 
         Button publish = iconBtn("Publier", VaadinIcon.UPLOAD, ButtonVariant.LUMO_PRIMARY);
@@ -327,7 +327,7 @@ public class AllEventsManagementView extends VerticalLayout {
                 "Une fois publié, vous ne pourrez plus changer son statut (règle admin)."));
 
         Button cancel = iconBtn("Annuler", VaadinIcon.CLOSE_CIRCLE, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
-        // Your rule: if published, admin cannot modify status => disable cancel
+        // rule: if published, admin cannot modify status => disable cancel
         cancel.setEnabled(!isPublished && e.getStatut() != EventStatus.ANNULE && e.getStatut() != EventStatus.TERMINE);
         cancel.addClickListener(ev -> confirmStatusChange(e, EventStatus.ANNULE,
                 "Annuler l’événement ?",
@@ -370,7 +370,6 @@ public class AllEventsManagementView extends VerticalLayout {
 
         dialog.addConfirmListener(ev -> {
             try {
-                // Use your existing service method
                 eventService.changeEventStatus(e.getId(), target);
                 showSuccess("Statut mis à jour: " + target);
                 loadEvents();
@@ -398,9 +397,7 @@ public class AllEventsManagementView extends VerticalLayout {
 
         dialog.addConfirmListener(ev -> {
             try {
-                // If your service has deleteEvent(id), use it.
-                // Otherwise call repository delete (but service is better).
-                eventService.deleteEvent(e.getId()); // adjust if your method name differs
+                eventService.deleteEvent(e.getId());
                 showSuccess("Événement supprimé.");
                 loadEvents();
             } catch (Exception ex) {
@@ -436,7 +433,7 @@ public class AllEventsManagementView extends VerticalLayout {
     Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
     dialog.setHeaderTitle("Modifier l’événement");
 
-    // Create a PATCH object (only fields we want to update)
+    // Create a PATCH object 
     Event patch = new Event();
     patch.setTitre(event.getTitre());
     patch.setDescription(event.getDescription());
@@ -447,7 +444,7 @@ public class AllEventsManagementView extends VerticalLayout {
     patch.setVille(event.getVille());
     patch.setCapaciteMax(event.getCapaciteMax());
     patch.setPrixUnitaire(event.getPrixUnitaire());
-    // IMPORTANT: do NOT set imageUrl => no photo change
+    // do NOT set imageUrl => no photo change
 
     // Fields
     TextField titre = new TextField("Titre");

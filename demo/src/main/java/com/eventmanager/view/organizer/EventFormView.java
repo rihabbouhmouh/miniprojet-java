@@ -130,7 +130,7 @@ public class EventFormView extends VerticalLayout {
         previewImage.getStyle().set("border", "1px solid #e5e7eb");
         previewImage.setVisible(false);
 
-        // ✅ Use FileBuffer (disk), not MemoryBuffer
+        // Use FileBuffer (disk), not MemoryBuffer
         FileBuffer buffer = new FileBuffer();
         imageUpload = new Upload(buffer);
         imageUpload.setAcceptedFileTypes("image/png", "image/jpeg", "image/jpg", "image/webp");
@@ -146,7 +146,7 @@ public class EventFormView extends VerticalLayout {
         imageBox.setSpacing(true);
         imageBox.setWidthFull();
 
-        // ✅ Success: save into /uploads and store only URL in imageUrl
+        // Save into /uploads and store only URL in imageUrl
         imageUpload.addSucceededListener(e -> {
             try {
                 String original = e.getFileName();
@@ -224,7 +224,7 @@ public class EventFormView extends VerticalLayout {
         form.setColspan(imageUrl, 2);
         form.setColspan(imageBox, 2);
 
-        // ✅ Binder + validations
+        // Binder + validations
         binder.forField(titre)
                 .asRequired("Titre obligatoire")
                 .withValidator(t -> t != null && t.trim().length() >= 3, "Min 3 caractères")

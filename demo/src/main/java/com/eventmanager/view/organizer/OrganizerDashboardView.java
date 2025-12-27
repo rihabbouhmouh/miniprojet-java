@@ -42,7 +42,7 @@ public class OrganizerDashboardView extends VerticalLayout {
         User organizer = authenticatedUser.get()
                 .orElseThrow(() -> new IllegalStateException("Utilisateur non authentifié"));
 
-        // Page container (centered like your Home sections)
+        // Page container
         Div page = new Div();
         page.getStyle()
                 .set("max-width", "1200px")
@@ -207,7 +207,7 @@ public class OrganizerDashboardView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
-        // IMPORTANT: more rows visible (fixes "only 2 rows" feeling)
+        // More rows visible (fixes "only 2 rows" feeling)
         grid.setAllRowsVisible(true);
 
         List<Event> upcoming = events.stream()

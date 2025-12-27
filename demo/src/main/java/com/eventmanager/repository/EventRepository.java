@@ -37,7 +37,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByOrganisateurId(@Param("organisateurId") Long organisateurId);
 
 
-    // ✅ Correction : chargement des réservations avec JOIN FETCH pour éviter LazyInitializationException
+    // Chargement des réservations avec JOIN FETCH pour éviter LazyInitializationException
     @Query("SELECT DISTINCT e FROM Event e LEFT JOIN FETCH e.reservations r WHERE e.statut = 'PUBLIE' AND e.dateFin > CURRENT_TIMESTAMP")
     List<Event> findAvailableEventsWithReservations();
 
@@ -78,7 +78,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE e.dateDebut BETWEEN CURRENT_TIMESTAMP AND :dateLimit AND e.statut = 'PUBLIE'")
     List<Event> findUpcomingEvents(@Param("dateLimit") LocalDateTime dateLimit);
 
-    // ✅ Nombre total de places réservées pour un événement
+    // Nombre total de places réservées pour un événement
     @Query("SELECT COALESCE(SUM(r.nombrePlaces), 0) FROM Reservation r WHERE r.evenement.id = :eventId AND r.statut != 'ANNULEE'")
     int countReservedSeats(@Param("eventId") Long eventId);
 

@@ -180,7 +180,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public List<User> getUsersWithFilters(String nom, String prenom,
                                           UserRole role, Boolean actif) {
-        // CORRECTION SIMPLIFIÉE : Utilisez findAll() et filtrez avec Streams
+        // Utilisez findAll() et filtrez avec Streams
         List<User> allUsers = userRepository.findAll();
 
         return allUsers.stream()

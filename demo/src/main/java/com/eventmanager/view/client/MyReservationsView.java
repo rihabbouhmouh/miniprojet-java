@@ -474,8 +474,7 @@ public class MyReservationsView extends VerticalLayout implements BeforeEnterObs
 
     /**
      * UI rule for cancel button.
-     * Your service already blocks cancelling after the event has started.
-     * If you want the “48h before” rule, keep the +48h check below (recommended).
+     * the service already blocks cancelling after the event has started.
      */
     private boolean canCancel(Reservation r) {
         if (r == null) return false;

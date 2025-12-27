@@ -119,7 +119,7 @@ public class ReservationServiceImpl implements IReservationService {
 
     @Override
     public List<Reservation> getReservationsByEvent(Long eventId) {
-        // ✅ IMPORTANT : utiliser JOIN FETCH
+        // utiliser JOIN FETCH
         return reservationRepository.findByEvenementIdWithDetails(eventId);
     }
 

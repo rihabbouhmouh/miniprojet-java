@@ -6,10 +6,11 @@
 
 .page-container{
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: none;          /* allow full expansion when drawer closes */
+  margin: 0;                /* remove centering constraint */
   padding: 0 24px;
   box-sizing: border-box;
+  min-width: 0;             /* important for Vaadin/flex children expansion */
 }
 
 .admin-users-header{
@@ -37,6 +38,7 @@
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
   overflow: hidden;
   margin-top: 16px;
+  min-width: 0;             /* avoids width clipping inside flex layouts */
 }
 
 .card-head{
@@ -77,6 +79,7 @@
 /* Grid body: NO padding to avoid weird scroll look */
 .card-body.grid-body{
   padding: 0;
+  min-width: 0;             /* lets the grid stretch inside the body */
 }
 
 /* Grid header look */

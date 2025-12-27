@@ -447,7 +447,7 @@ public class RegisterView extends VerticalLayout {
                     UserRole.CLIENT
             );
 
-            showSuccess("✅ Inscription réussie !");
+            showSuccess("Inscription réussie !");
 
             getUI().ifPresent(ui -> ui.access(() -> {
                 try {
@@ -459,15 +459,15 @@ public class RegisterView extends VerticalLayout {
             }));
 
         } catch (ValidationException e) {
-            showError("❌ Corrigez les erreurs");
+            showError("Corrigez les erreurs");
             registerButton.setEnabled(true);
             registerButton.setText("S'inscrire");
         } catch (IllegalArgumentException e) {
-            showError("❌ " + e.getMessage());
+            showError("" + e.getMessage());
             registerButton.setEnabled(true);
             registerButton.setText("S'inscrire");
         } catch (Exception e) {
-            showError("❌ Erreur : " + e.getMessage());
+            showError("Erreur : " + e.getMessage());
             registerButton.setEnabled(true);
             registerButton.setText("S'inscrire");
         }

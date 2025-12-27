@@ -214,7 +214,7 @@ VALUES
 
 
 -- ------------------------------------------------
--- ✅ FIX: Resynchroniser les IDENTITY (auto-increment)
+-- Resynchroniser les IDENTITY (auto-increment)
 -- (Obligatoire car on insère des IDs manuellement)
 -- ------------------------------------------------
 ALTER TABLE users ALTER COLUMN id RESTART WITH (SELECT COALESCE(MAX(id), 0) + 1 FROM users);

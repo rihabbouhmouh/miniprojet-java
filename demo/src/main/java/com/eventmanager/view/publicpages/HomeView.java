@@ -19,6 +19,7 @@ import com.vaadin.flow.component.orderedlayout.*;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "home", layout = MainLayout.class)
+@RouteAlias(value = "", layout = MainLayout.class)
 @PageTitle("EventHub - Discover Amazing Events")
 @CssImport("./styles/home-view.css")
 public class HomeView extends VerticalLayout {
@@ -332,7 +334,7 @@ public class HomeView extends VerticalLayout {
         if (url != null && !url.isBlank()) {
             img.getStyle().set("background-image", "url('" + url + "')");
         } else {
-            // fallback gradient (still white theme, but nice)
+            // fallback gradient
             String c = (event.getCategorie() != null ? event.getCategorie().getColor() : "#6b7280");
             img.getStyle().set("background-image", "linear-gradient(135deg, " + c + ", #a5b4fc)");
         }
