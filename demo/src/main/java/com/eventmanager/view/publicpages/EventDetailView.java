@@ -1,4 +1,4 @@
-package com.eventmanager.view.publicview;
+package com.eventmanager.view.publicpages;
 
 import com.eventmanager.entity.Event;
 import com.eventmanager.security.AuthenticatedUser;

@@ -3,11 +3,10 @@ import { injectGlobalWebcomponentCss } from 'Frontend/generated/jar-resources/th
 import { injectGlobalCss } from 'Frontend/generated/jar-resources/theme-util.js';
 
 import { css, unsafeCSS, registerStyles } from '@vaadin/vaadin-themable-mixin';
-import $cssFromFile_0 from 'Frontend/styles/styles.css?inline';
-import $cssFromFile_1 from 'Frontend/styles/my-reservations-view.css?inline';
-import $cssFromFile_2 from 'Frontend/styles/home-view.css?inline';
-import $cssFromFile_3 from 'Frontend/styles/admin-dashboard.css?inline';
-import $cssFromFile_4 from 'Frontend/styles/admin-users.css?inline';
+import $cssFromFile_0 from 'Frontend/styles/admin-dashboard.css?inline';
+import $cssFromFile_1 from 'Frontend/styles/admin-users.css?inline';
+import $cssFromFile_2 from 'Frontend/styles/my-reservations-view.css?inline';
+import $cssFromFile_3 from 'Frontend/styles/home-view.css?inline';
 import '@vaadin/polymer-legacy-adapter/style-modules.js';
 import '@vaadin/vertical-layout/theme/lumo/vaadin-vertical-layout.js';
 import '@vaadin/app-layout/theme/lumo/vaadin-app-layout.js';
@@ -108,9 +107,6 @@ injectGlobalWebcomponentCss($cssFromFile_2.toString());
 
 injectGlobalCss($cssFromFile_3.toString(), 'CSSImport end', document);
 injectGlobalWebcomponentCss($cssFromFile_3.toString());
-
-injectGlobalCss($cssFromFile_4.toString(), 'CSSImport end', document);
-injectGlobalWebcomponentCss($cssFromFile_4.toString());
 const loadOnDemand = (key) => { return Promise.resolve(0); }
 window.Vaadin = window.Vaadin || {};
 window.Vaadin.Flow = window.Vaadin.Flow || {};

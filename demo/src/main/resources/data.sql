@@ -1,133 +1,213 @@
 -- ============================================
--- Données initiales : Utilisateurs, Événements, Réservations
--- Projet : Plateforme de gestion d'événements culturels
--- Base de données : H2
+-- Données initiales (H2) - EventHub
+-- Utilisateurs (5) + Événements (15) + Réservations (20)
 -- ============================================
 
--- ============================
--- UTILISATEURS
--- ============================
--- Mots de passe hashés avec BCrypt :
--- admin123 -> $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
--- org123   -> $2a$10$VEjxo0jq2YT5J1WbEIKbke5NkX7PHe7rljKzWLgX5LNjVTjhWtUgi
--- client123-> $2a$10$2aMCqHWZhEh1H6J6e9WEduYXxaLFJg3JMQjXm/GFLHjBvEDHZXHNy
+-- ------------------------------------------------
+-- Nettoyage (utile si tu relances sans drop schema)
+-- ------------------------------------------------
+DELETE FROM reservations;
+DELETE FROM events;
+DELETE FROM users;
 
--- CORRECTION : Remplacez 'role' par 'user_role'
-INSERT INTO users (nom, prenom, email, password, user_role, date_inscription, actif, telephone) VALUES
-('Admin', 'Systeme', 'admin@event.ma', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'ADMIN', NOW(), TRUE, '0611223344'),
-('El Amrani', 'Karim', 'organizer1@event.ma', '$2a$10$SKcF8qWWdIVr7Ac4el2rUOKbiXHiSAipNCQOBVsZkBNCLaQfLkIKy', 'ORGANIZER', NOW(), TRUE, '0622334455'),
-('Bennani', 'Leila', 'organizer2@event.ma', '$2a$10$SKcF8qWWdIVr7Ac4el2rUOKbiXHiSAipNCQOBVsZkBNCLaQfLkIKy', 'ORGANIZER', NOW(), TRUE, '0633445566'),
-('Nassiri', 'Omar', 'client1@event.ma', '$2a$10$2aMCqHWZhEh1H6J6e9WEduYXxaLFJg3JMQjXm/GFLHjBvEDHZXHNy', 'CLIENT', NOW(), TRUE, '0644556677'),
-('Haddad', 'Sara', 'client2@event.ma', '$2a$10$2aMCqHWZhEh1H6J6e9WEduYXxaLFJg3JMQjXm/GFLHjBvEDHZXHNy', 'CLIENT', NOW(), TRUE, '0655667788');
+-- ------------------------------------------------
+-- UTILISATEURS (5 minimum)
+-- 1 ADMIN     : admin@event.ma / admin123
+-- 2 ORGANIZER : organizer1@event.ma, organizer2@event.ma / org123
+-- 2 CLIENT    : client1@event.ma, client2@event.ma / client123
+--
+-- BCrypt hashes (stables):
+-- admin123  -> $2a$10$vVQ4oC2wxivVKWyX/UB88uPk4ITI8QPj9ZsTx6empqwhELyavJCfq
+-- org123    -> $2a$10$oDdpSZsTQqmclHy3oo8KlesYY7jFDXw5YTjVTPFSiZFAwgAJjWQAO
+-- client123 -> $2a$10$hB4vu3mt6BhWkxaQSExNTeXurgptx4QR.5HHaA90pE0kLfJaL6/zS
+-- ------------------------------------------------
+INSERT INTO users (id, nom, prenom, email, password, user_role, date_inscription, actif, telephone) VALUES
+(1, 'Admin', 'Systeme', 'admin@event.ma',
+ '$2a$10$vVQ4oC2wxivVKWyX/UB88uPk4ITI8QPj9ZsTx6empqwhELyavJCfq',
+ 'ADMIN', CURRENT_TIMESTAMP, TRUE, '0611223344'),
 
--- ============================
--- ÉVÉNEMENTS - CONCERTS (3)
--- ============================
-INSERT INTO events (titre, description, categorie, date_debut, date_fin, lieu, ville, capacite_max, prix_unitaire, image_url, organisateur_id, statut, date_creation, date_modification) VALUES
-('Jazz à Casablanca', 'Concert de jazz international avec des artistes locaux et internationaux. Une soirée exceptionnelle dans un cadre prestigieux.', 'CONCERT',
- DATEADD('DAY', 10, NOW()), DATEADD('HOUR', 3, DATEADD('DAY', 10, NOW())),
- 'Théâtre Mohamed V', 'Casablanca', 120, 250.0, 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae', 2, 'PUBLIE', NOW(), NOW()),
+(2, 'El Amrani', 'Karim', 'organizer1@event.ma',
+ '$2a$10$oDdpSZsTQqmclHy3oo8KlesYY7jFDXw5YTjVTPFSiZFAwgAJjWQAO',
+ 'ORGANIZER', CURRENT_TIMESTAMP, TRUE, '0622334455'),
 
-('Rock Festival Maroc', 'Festival de rock avec les meilleurs groupes marocains et invités internationaux. Deux jours de musique non-stop !', 'CONCERT',
- DATEADD('DAY', 20, NOW()), DATEADD('DAY', 21, NOW()),
- 'Stade Ibn Battouta', 'Tanger', 300, 180.0, 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3', 3, 'PUBLIE', NOW(), NOW()),
+(3, 'Bennani', 'Leila', 'organizer2@event.ma',
+ '$2a$10$oDdpSZsTQqmclHy3oo8KlesYY7jFDXw5YTjVTPFSiZFAwgAJjWQAO',
+ 'ORGANIZER', CURRENT_TIMESTAMP, TRUE, '0633445566'),
 
-('Soirée Andalouse', 'Musique traditionnelle andalouse avec l''orchestre philharmonique de Fès.', 'CONCERT',
- DATEADD('DAY', 25, NOW()), DATEADD('HOUR', 2, DATEADD('DAY', 25, NOW())),
- 'Salle des Fêtes', 'Fès', 200, 220.0, NULL, 2, 'BROUILLON', NOW(), NOW());
+(4, 'Nassiri', 'Omar', 'client1@event.ma',
+ '$2a$10$hB4vu3mt6BhWkxaQSExNTeXurgptx4QR.5HHaA90pE0kLfJaL6/zS',
+ 'CLIENT', CURRENT_TIMESTAMP, TRUE, '0644556677'),
 
--- ============================
--- ÉVÉNEMENTS - THÉÂTRE (3)
--- ============================
-INSERT INTO events (titre, description, categorie, date_debut, date_fin, lieu, ville, capacite_max, prix_unitaire, image_url, organisateur_id, statut, date_creation, date_modification) VALUES
-('Le Malade Imaginaire', 'Pièce classique de Molière revisitée par la troupe nationale. Mise en scène moderne et innovante.', 'THEATRE',
- DATEADD('DAY', 15, NOW()), DATEADD('HOUR', 2, DATEADD('DAY', 15, NOW())),
- 'Théâtre National Mohamed V', 'Rabat', 100, 150.0, NULL, 3, 'PUBLIE', NOW(), NOW()),
+(5, 'Haddad', 'Sara', 'client2@event.ma',
+ '$2a$10$hB4vu3mt6BhWkxaQSExNTeXurgptx4QR.5HHaA90pE0kLfJaL6/zS',
+ 'CLIENT', CURRENT_TIMESTAMP, TRUE, '0655667788');
 
-('Comédie Marocaine', 'Spectacle humoristique contemporain avec les meilleurs comédiens du royaume.', 'THEATRE',
- DATEADD('DAY', 30, NOW()), DATEADD('MINUTE', 90, DATEADD('DAY', 30, NOW())),
- 'Complexe Culturel', 'Casablanca', 180, 120.0, NULL, 2, 'PUBLIE', NOW(), NOW()),
+-- ------------------------------------------------
+-- ÉVÉNEMENTS (15 minimum)
+-- 3 CONCERT, 3 THEATRE, 3 CONFERENCE, 3 SPORT, 3 AUTRE
+-- Mix statuts: BROUILLON, PUBLIE, ANNULE, TERMINE
+-- Villes: Casablanca, Rabat, Marrakech, Tanger, Fès
+-- Prix: 50 à 500 DH
+-- Organisateurs: 2 et 3
+-- ------------------------------------------------
+INSERT INTO events (id, titre, description, categorie, date_debut, date_fin, lieu, ville,
+                    capacite_max, prix_unitaire, image_url, organisateur_id, statut,
+                    date_creation, date_modification)
+VALUES
+-- ===== CONCERT (1..3)
+(1, 'Jazz Night Casablanca',
+ 'Une soirée jazz avec artistes locaux et internationaux.',
+ 'CONCERT',
+ DATEADD('DAY', 7, CURRENT_TIMESTAMP), DATEADD('HOUR', 3, DATEADD('DAY', 7, CURRENT_TIMESTAMP)),
+ 'Studio des Arts', 'Casablanca',
+ 200, 250.0, 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae', 2, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('La Famille Sous Pression', 'Pièce de théâtre moderne sur les défis de la société contemporaine.', 'THEATRE',
- DATEADD('DAY', 35, NOW()), DATEADD('HOUR', 2, DATEADD('DAY', 35, NOW())),
- 'Centre Culturel', 'Marrakech', 150, 130.0, NULL, 3, 'BROUILLON', NOW(), NOW());
+(2, 'Rock Festival Tanger',
+ 'Festival rock sur 2 jours avec groupes marocains & invités.',
+ 'CONCERT',
+ DATEADD('DAY', 20, CURRENT_TIMESTAMP), DATEADD('DAY', 21, CURRENT_TIMESTAMP),
+ 'Stade Ibn Battouta', 'Tanger',
+ 800, 180.0, 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3', 3, 'BROUILLON',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
--- ============================
--- ÉVÉNEMENTS - CONFÉRENCES (3)
--- ============================
-INSERT INTO events (titre, description, categorie, date_debut, date_fin, lieu, ville, capacite_max, prix_unitaire, image_url, organisateur_id, statut, date_creation, date_modification) VALUES
-('Tech Summit 2025', 'Conférence internationale sur l''intelligence artificielle et les nouvelles technologies. Experts mondiaux et networking.', 'CONFERENCE',
- DATEADD('DAY', 45, NOW()), DATEADD('DAY', 46, NOW()),
- 'Palais des Congrès', 'Rabat', 400, 500.0, 'https://images.unsplash.com/photo-1540575467063-178a50c2df87', 2, 'PUBLIE', NOW(), NOW()),
+(3, 'Soirée Andalouse Fès',
+ 'Musique andalouse traditionnelle.',
+ 'CONCERT',
+ DATEADD('DAY', 12, CURRENT_TIMESTAMP), DATEADD('HOUR', 2, DATEADD('DAY', 12, CURRENT_TIMESTAMP)),
+ 'Salle des Fêtes', 'Fès',
+ 250, 220.0, 'https://images.unsplash.com/photo-1506157786151-b8491531f063', 2, 'ANNULE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('Santé Digitale au Maroc', 'Conférence médicale sur la transformation numérique du secteur de la santé.', 'CONFERENCE',
- DATEADD('DAY', 50, NOW()), DATEADD('DAY', 51, NOW()),
- 'Hôpital Universitaire', 'Casablanca', 250, 350.0, NULL, 3, 'ANNULE', NOW(), NOW()),
+-- ===== THEATRE (4..6)
+(4, 'Le Malade Imaginaire',
+ 'Molière revisité avec mise en scène moderne.',
+ 'THEATRE',
+ DATEADD('DAY', 10, CURRENT_TIMESTAMP), DATEADD('HOUR', 2, DATEADD('DAY', 10, CURRENT_TIMESTAMP)),
+ 'Théâtre National Mohamed V', 'Rabat',
+ 140, 150.0, 'https://images.unsplash.com/photo-1503095396549-807759245b35', 3, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('Énergies Renouvelables', 'Débat national sur la transition énergétique et les énergies vertes au Maroc.', 'CONFERENCE',
- DATEADD('DAY', 60, NOW()), DATEADD('HOUR', 4, DATEADD('DAY', 60, NOW())),
- 'Centre Écologique', 'Tanger', 300, 300.0, NULL, 2, 'PUBLIE', NOW(), NOW());
+(5, 'Comédie Marocaine (édition passée)',
+ 'Spectacle humoristique - édition précédente.',
+ 'THEATRE',
+ DATEADD('DAY', -20, CURRENT_TIMESTAMP), DATEADD('HOUR', 2, DATEADD('DAY', -20, CURRENT_TIMESTAMP)),
+ 'Complexe Culturel', 'Casablanca',
+ 180, 120.0, 'https://images.unsplash.com/photo-1526698905402-e13b880ad864', 2, 'TERMINE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
--- ============================
--- ÉVÉNEMENTS - SPORT (3)
--- ============================
-INSERT INTO events (titre, description, categorie, date_debut, date_fin, lieu, ville, capacite_max, prix_unitaire, image_url, organisateur_id, statut, date_creation, date_modification) VALUES
-('Tournoi de Tennis Amateur', 'Compétition amicale ouverte à tous les niveaux. Inscriptions sur place.', 'SPORT',
- DATEADD('DAY', 18, NOW()), DATEADD('DAY', 19, NOW()),
- 'Club Olympique', 'Marrakech', 80, 100.0, NULL, 3, 'PUBLIE', NOW(), NOW()),
+(6, 'La Famille Sous Pression',
+ 'Pièce moderne sur les défis contemporains.',
+ 'THEATRE',
+ DATEADD('DAY', 30, CURRENT_TIMESTAMP), DATEADD('HOUR', 2, DATEADD('DAY', 30, CURRENT_TIMESTAMP)),
+ 'Centre Culturel', 'Marrakech',
+ 220, 130.0, 'https://images.unsplash.com/photo-1521334726092-b509a19597c1', 3, 'BROUILLON',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('Marathon de Rabat', 'Course internationale de 42 km dans les rues historiques de Rabat. Catégories : Elite, Amateurs, Fun Run.', 'SPORT',
- DATEADD('DAY', 28, NOW()), DATEADD('HOUR', 6, DATEADD('DAY', 28, NOW())),
- 'Boulevard Hassan II', 'Rabat', 500, 50.0, 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3', 2, 'PUBLIE', NOW(), NOW()),
+-- ===== CONFERENCE (7..9)
+(7, 'Tech Summit Rabat 2025',
+ 'IA, Cloud, Cybersecurity : experts & networking.',
+ 'CONFERENCE',
+ DATEADD('DAY', 40, CURRENT_TIMESTAMP), DATEADD('DAY', 41, CURRENT_TIMESTAMP),
+ 'Palais des Congrès', 'Rabat',
+ 600, 500.0, 'https://images.unsplash.com/photo-1540575467063-178a50c2df87', 2, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('Championnat d''Échecs', 'Tournoi national d''échecs pour amateurs et professionnels. Prix attractifs.', 'SPORT',
- DATEADD('DAY', 70, NOW()), DATEADD('DAY', 71, NOW()),
- 'Complexe Sportif', 'Fès', 60, 75.0, NULL, 3, 'BROUILLON', NOW(), NOW());
+(8, 'Santé Digitale au Maroc',
+ 'Transformation digitale du secteur santé.',
+ 'CONFERENCE',
+ DATEADD('DAY', 25, CURRENT_TIMESTAMP), DATEADD('DAY', 25, CURRENT_TIMESTAMP),
+ 'Hôpital Universitaire', 'Casablanca',
+ 300, 350.0, 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d', 3, 'ANNULE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
--- ============================
--- ÉVÉNEMENTS - AUTRE (3)
--- ============================
-INSERT INTO events (titre, description, categorie, date_debut, date_fin, lieu, ville, capacite_max, prix_unitaire, image_url, organisateur_id, statut, date_creation, date_modification) VALUES
-('Salon du Livre de Casablanca', 'Rencontres et dédicaces avec des auteurs marocains et internationaux. Plus de 100 exposants.', 'AUTRE',
- DATEADD('DAY', 12, NOW()), DATEADD('DAY', 14, NOW()),
- 'Bibliothèque Nationale', 'Casablanca', 250, 60.0, NULL, 2, 'PUBLIE', NOW(), NOW()),
+(9, 'Énergies Renouvelables Tanger',
+ 'Transition énergétique et innovations vertes.',
+ 'CONFERENCE',
+ DATEADD('DAY', 55, CURRENT_TIMESTAMP), DATEADD('HOUR', 4, DATEADD('DAY', 55, CURRENT_TIMESTAMP)),
+ 'Centre Écologique', 'Tanger',
+ 450, 300.0, 'https://images.unsplash.com/photo-1509395176047-4a66953fd231', 2, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('Exposition d''Art Contemporain', 'Œuvres d''artistes marocains émergents. Peinture, sculpture, photographie.', 'AUTRE',
- DATEADD('DAY', 8, NOW()), DATEADD('DAY', 10, NOW()),
- 'Galerie des Arts', 'Tanger', 120, 80.0, 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b', 3, 'PUBLIE', NOW(), NOW()),
+-- ===== SPORT (10..12)
+(10, 'Marathon de Rabat',
+ '42 km + catégories amateurs.',
+ 'SPORT',
+ DATEADD('DAY', 15, CURRENT_TIMESTAMP), DATEADD('HOUR', 6, DATEADD('DAY', 15, CURRENT_TIMESTAMP)),
+ 'Boulevard Hassan II', 'Rabat',
+ 1200, 50.0, 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3', 2, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('Atelier de Calligraphie Arabe', 'Initiation à l''art de la calligraphie arabe traditionnelle avec un maître calligraphe.', 'AUTRE',
- DATEADD('DAY', -5, NOW()), DATEADD('DAY', -4, NOW()),
- 'Maison de la Culture', 'Fès', 50, 100.0, NULL, 2, 'TERMINE', NOW(), NOW());
+(11, 'Tournoi de Tennis Amateur',
+ 'Compétition ouverte à tous les niveaux.',
+ 'SPORT',
+ DATEADD('DAY', 18, CURRENT_TIMESTAMP), DATEADD('DAY', 19, CURRENT_TIMESTAMP),
+ 'Club Olympique', 'Marrakech',
+ 120, 100.0, 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8', 3, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
--- ============================
--- RÉSERVATIONS (20)
--- ============================
-INSERT INTO reservations (utilisateur_id, evenement_id, nombre_places, montant_total, date_reservation, statut, code_reservation, commentaire) VALUES
--- Réservations Client 1 (Omar - id 4)
-(4, 1, 2, 500.0, NOW(), 'CONFIRMEE', 'EVT-A1B2C3', 'Deux places côte à côte si possible'),
-(4, 4, 1, 150.0, NOW(), 'CONFIRMEE', 'EVT-D4E5F6', 'Place au premier rang préférée'),
-(4, 7, 1, 500.0, NOW(), 'EN_ATTENTE', 'EVT-G7H8I9', 'En attente de confirmation'),
-(4, 10, 2, 200.0, NOW(), 'CONFIRMEE', 'EVT-J1K2L3', NULL),
-(4, 13, 1, 60.0, NOW(), 'CONFIRMEE', 'EVT-M4N5O6', NULL),
-(4, 2, 2, 360.0, NOW(), 'CONFIRMEE', 'EVT-P7Q8R9', NULL),
-(4, 5, 2, 240.0, NOW(), 'ANNULEE', 'EVT-S1T2U3', 'Changement de programme'),
-(4, 14, 2, 160.0, NOW(), 'CONFIRMEE', 'EVT-V4W5X6', NULL),
-(4, 9, 1, 300.0, NOW(), 'EN_ATTENTE', 'EVT-Y7Z8A9', NULL),
-(4, 11, 1, 50.0, NOW(), 'CONFIRMEE', 'EVT-B1C2D3', NULL),
+(12, 'Championnat d''Échecs (édition passée)',
+ 'Tournoi national - édition passée.',
+ 'SPORT',
+ DATEADD('DAY', -12, CURRENT_TIMESTAMP), DATEADD('DAY', -12, CURRENT_TIMESTAMP),
+ 'Complexe Sportif', 'Fès',
+ 80, 75.0, 'https://images.unsplash.com/photo-1523875194681-bedd468c58bf', 3, 'TERMINE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
--- Réservations Client 2 (Sara - id 5)
-(5, 2, 3, 540.0, NOW(), 'CONFIRMEE', 'EVT-E4F5G6', 'Pour mes amis et moi'),
-(5, 5, 2, 240.0, NOW(), 'CONFIRMEE', 'EVT-H7I8J9', NULL),
-(5, 8, 1, 350.0, NOW(), 'ANNULEE', 'EVT-K1L2M3', 'Événement annulé'),
-(5, 9, 2, 600.0, NOW(), 'CONFIRMEE', 'EVT-N4O5P6', NULL),
-(5, 11, 4, 200.0, NOW(), 'CONFIRMEE', 'EVT-Q7R8S9', 'Groupe de coureurs'),
-(5, 14, 1, 80.0, NOW(), 'CONFIRMEE', 'EVT-T1U2V3', NULL),
-(5, 1, 1, 250.0, NOW(), 'EN_ATTENTE', 'EVT-W4X5Y6', NULL),
-(5, 10, 1, 100.0, NOW(), 'CONFIRMEE', 'EVT-Z7A8B9', NULL),
-(5, 13, 3, 180.0, NOW(), 'CONFIRMEE', 'EVT-C1D2E3', NULL),
-(5, 4, 2, 300.0, NOW(), 'CONFIRMEE', 'EVT-F4G5H6', NULL);
+-- ===== AUTRE (13..15)
+(13, 'Salon du Livre Casablanca',
+ 'Rencontres auteurs, dédicaces, +100 exposants.',
+ 'AUTRE',
+ DATEADD('DAY', 9, CURRENT_TIMESTAMP), DATEADD('DAY', 11, CURRENT_TIMESTAMP),
+ 'Bibliothèque Nationale', 'Casablanca',
+ 500, 60.0, 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f', 2, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
--- ============================
--- FIN DU SCRIPT
--- ============================
+(14, 'Exposition d''Art Contemporain',
+ 'Peinture, sculpture, photographie.',
+ 'AUTRE',
+ DATEADD('DAY', 5, CURRENT_TIMESTAMP), DATEADD('DAY', 6, CURRENT_TIMESTAMP),
+ 'Galerie des Arts', 'Tanger',
+ 200, 80.0, 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b', 3, 'BROUILLON',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+(15, 'Atelier Calligraphie Arabe',
+ 'Initiation avec un maître calligraphe.',
+ 'AUTRE',
+ DATEADD('DAY', 22, CURRENT_TIMESTAMP), DATEADD('DAY', 22, CURRENT_TIMESTAMP),
+ 'Maison de la Culture', 'Fès',
+ 60, 100.0, 'https://images.unsplash.com/photo-1520975916090-3105956dac38', 2, 'PUBLIE',
+ CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- ------------------------------------------------
+-- RÉSERVATIONS (20 minimum)
+-- Recherche/filtre utiles: code, utilisateur, événement
+-- Places: 1 à 10
+-- Statuts: CONFIRMEE, EN_ATTENTE, ANNULEE
+-- ------------------------------------------------
+INSERT INTO reservations (utilisateur_id, evenement_id, nombre_places, montant_total,
+                          date_reservation, statut, code_reservation, commentaire)
+VALUES
+-- Client1 (id=4)
+(4, 1, 2, 500.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00001', 'Deux places côte à côte'),
+(4, 4, 1, 150.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00002', NULL),
+(4, 7, 1, 500.0, CURRENT_TIMESTAMP, 'EN_ATTENTE', 'EVT-00003', 'En attente de validation'),
+(4, 10, 5, 250.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00004', 'Groupe 5 personnes'),
+(4, 11, 3, 300.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00005', NULL),
+(4, 13, 4, 240.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00006', NULL),
+(4, 9, 2, 600.0, CURRENT_TIMESTAMP, 'EN_ATTENTE', 'EVT-00007', NULL),
+(4, 15, 1, 100.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00008', NULL),
+(4, 5, 2, 240.0, CURRENT_TIMESTAMP, 'ANNULEE', 'EVT-00009', 'Changement de programme'),
+(4, 3, 1, 220.0, CURRENT_TIMESTAMP, 'ANNULEE', 'EVT-00010', 'Événement annulé'),
+
+-- Client2 (id=5)
+(5, 1, 1, 250.0, CURRENT_TIMESTAMP, 'EN_ATTENTE', 'EVT-00011', NULL),
+(5, 4, 2, 300.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00012', NULL),
+(5, 7, 2, 1000.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00013', 'Deux tickets VIP'),
+(5, 10, 10, 500.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00014', 'Groupe de 10 coureurs'),
+(5, 11, 1, 100.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00015', NULL),
+(5, 13, 2, 120.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00016', NULL),
+(5, 9, 3, 900.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00017', NULL),
+(5, 15, 2, 200.0, CURRENT_TIMESTAMP, 'EN_ATTENTE', 'EVT-00018', NULL),
+(5, 12, 4, 300.0, CURRENT_TIMESTAMP, 'CONFIRMEE', 'EVT-00019', 'Réservation archive'),
+(5, 14, 2, 160.0, CURRENT_TIMESTAMP, 'ANNULEE', 'EVT-00020', 'Annulé (brouillon)');

@@ -27,6 +27,7 @@ import java.util.List;
 
 @Route(value = "home", layout = MainLayout.class)
 @PageTitle("EventHub - Discover Amazing Events")
+@CssImport("./styles/home-view.css")
 public class HomeView extends VerticalLayout {
 
     private final IEventService eventService;

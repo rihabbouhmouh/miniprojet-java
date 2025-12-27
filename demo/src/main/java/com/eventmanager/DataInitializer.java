@@ -42,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) throws Exception {
         System.out.println("=== Initialisation des données ===");
+        /*
 
                 // =====================
         // Création des réservations
@@ -221,6 +222,6 @@ public class DataInitializer implements CommandLineRunner {
                     user.setActif(true);
                     user.setDateInscription(LocalDateTime.now());
                     return userRepository.save(user);
-                });
+                });*/
     }
 }

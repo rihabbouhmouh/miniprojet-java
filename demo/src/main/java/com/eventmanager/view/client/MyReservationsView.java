@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Route(value = "my-reservations", layout = MainLayout.class)
 @PageTitle("Mes Réservations")
+@CssImport("./styles/my-reservations-view.css")
 public class MyReservationsView extends VerticalLayout implements BeforeEnterObserver {
 
     private final IReservationService reservationService;
