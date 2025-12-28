@@ -323,19 +323,28 @@
 
 /* FOOTER */
 .home-footer {
+  width: 100%;
+  box-sizing: border-box;
   margin-top: 70px;
-  background: #ffffff;
-  border-top: 1px solid rgba(17, 24, 39, 0.10);
-  padding: 24px 20px;
+
+  background: var(--lumo-base-color);
+  border-top: 1px solid var(--lumo-contrast-10pct);
+  padding: 22px 20px;
 }
 
 .home-footer-inner {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;     /* centre le texte */
 }
 
 .home-footer-text {
   margin: 0;
-  color: rgba(17, 24, 39, 0.55);
+  color: var(--lumo-secondary-text-color);
   font-size: 0.95rem;
+  font-weight: 600;
 }

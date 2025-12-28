@@ -240,9 +240,11 @@ public class HomeView extends VerticalLayout {
     private Component buildFooter() {
         Footer footer = new Footer();
         footer.addClassName("home-footer");
+        footer.setWidthFull(); // force le footer à prendre toute la largeur
 
         Div inner = new Div();
         inner.addClassName("home-footer-inner");
+        inner.getStyle().set("width", "100%");
 
         Paragraph p = new Paragraph("© 2026 EventHub — All rights reserved.");
         p.addClassName("home-footer-text");
@@ -252,6 +254,7 @@ public class HomeView extends VerticalLayout {
 
         return footer;
     }
+
 
     /* ---------------------------
        DATA LOADERS
