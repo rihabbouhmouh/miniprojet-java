@@ -542,16 +542,12 @@ public class EventListView extends VerticalLayout {
                 .set("box-shadow", "0 6px 18px rgba(0,0,0,0.08)"));
 
         // Top image 
-        Div img = new Div();
-        img.getStyle()
-                .set("height", "170px")
-                .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
-                .set("background-size", "cover")
-                .set("background-position", "center");
+        Image img = new Image(event.getImageUrl(), event.getTitre());
+        img.setWidthFull();
+        img.setHeight("170px");
+        img.getStyle().set("object-fit", "cover");   // or "contain"
+        img.getStyle().set("display", "block");
 
-        if (event.getImageUrl() != null && !event.getImageUrl().isBlank()) {
-            img.getStyle().set("background-image", "url('" + event.getImageUrl() + "')");
-        }
 
         Div body = new Div();
         body.getStyle().set("padding", "16px");
