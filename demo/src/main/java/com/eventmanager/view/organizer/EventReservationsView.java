@@ -11,6 +11,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -20,8 +21,14 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
+import com.vaadin.flow.data.provider.Query;
+import com.vaadin.flow.function.SerializablePredicate;
 import com.vaadin.flow.router.*;
+import com.vaadin.flow.server.StreamResource;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -115,13 +122,7 @@ public class EventReservationsView extends VerticalLayout implements BeforeEnter
         statusFilter.setClearButtonVisible(true);
         statusFilter.addValueChangeListener(e -> applyFilters());
 
-        Button export = new Button("Exporter CSV", VaadinIcon.DOWNLOAD.create());
-        export.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        export.addClickListener(e ->
-                Notification.show("Export CSV (bonus)", 2000, Notification.Position.TOP_CENTER)
-        );
-
-        HorizontalLayout bar = new HorizontalLayout(searchField, statusFilter, export);
+        HorizontalLayout bar = new HorizontalLayout(searchField, statusFilter, buildExportButton());
         bar.setWidthFull();
         bar.setAlignItems(Alignment.END);
         bar.expand(searchField);
@@ -248,5 +249,80 @@ public class EventReservationsView extends VerticalLayout implements BeforeEnter
             Notification.show(ex.getMessage(), 5000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
+    }
+
+    /* -------------------- CSV EXPORT -------------------- */
+
+    private Anchor buildExportButton() {
+        Button exportBtn = new Button("Exporter CSV", VaadinIcon.DOWNLOAD.create());
+        exportBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        Anchor exportAnchor = new Anchor();
+        exportAnchor.getElement().setAttribute("download", true);
+        
+        // Create StreamResource that generates CSV on demand
+        StreamResource resource = new StreamResource(
+            "reservations_" + event.getTitre().replaceAll("[^a-zA-Z0-9]", "_") + "_" + LocalDate.now() + ".csv",
+            () -> {
+                // Get current filtered data from grid
+                List<Reservation> currentData = dataProvider != null 
+                    ? dataProvider.fetch(new Query<>()).toList()
+                    : List.of();
+                
+                String csv = buildCsv(currentData);
+                return new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8));
+            }
+        );
+        resource.setContentType("text/csv");
+        
+        exportAnchor.setHref(resource);
+        exportAnchor.add(exportBtn);
+        return exportAnchor;
+    }
+
+    private String buildCsv(List<Reservation> rows) {
+        // CSV simple (;) compatible Excel FR
+        StringBuilder sb = new StringBuilder();
+        sb.append("ID;Code;Client;Email;Places;Montant;Statut;Date\n");
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        for (Reservation r : rows) {
+            String id = r.getId() != null ? r.getId().toString() : "";
+            String code = safe(r.getCodeReservation());
+            String client = r.getUtilisateur() != null
+                    ? (safe(r.getUtilisateur().getPrenom()) + " " + safe(r.getUtilisateur().getNom())).trim()
+                    : "";
+            String email = r.getUtilisateur() != null ? safe(r.getUtilisateur().getEmail()) : "";
+            String places = r.getNombrePlaces() != null ? r.getNombrePlaces().toString() : "0";
+            String montant = r.getMontantTotal() != null ? String.format("%.2f", r.getMontantTotal()) : "0.00";
+            String statut = r.getStatut() != null ? r.getStatut().name() : "";
+            String date = r.getDateReservation() != null ? r.getDateReservation().format(fmt) : "";
+
+            sb.append(csvCell(id)).append(';')
+                    .append(csvCell(code)).append(';')
+                    .append(csvCell(client)).append(';')
+                    .append(csvCell(email)).append(';')
+                    .append(csvCell(places)).append(';')
+                    .append(csvCell(montant)).append(';')
+                    .append(csvCell(statut)).append(';')
+                    .append(csvCell(date))
+                    .append('\n');
+        }
+        return sb.toString();
+    }
+
+    private String csvCell(String s) {
+        if (s == null) return "";
+        // escape quotes, wrap in quotes if contains ; or " or newline
+        String v = s.replace("\"", "\"\"");
+        if (v.contains(";") || v.contains("\"") || v.contains("\n")) {
+            return "\"" + v + "\"";
+        }
+        return v;
+    }
+
+    private String safe(String s) {
+        return s == null ? "" : s;
     }
 }
